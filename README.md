@@ -26,6 +26,7 @@ pacod-broker is the capability broker of the original *AI Broker & Gateway* conc
 | **Agents use it directly** | `/mcp` serves `discover_resources`, `describe_resource` and `describe_provider` as MCP tools. |
 | **Small and fast** | 12.7 MB release binary, about 15 MB image (distroless, static), starts in under 100 ms, 23 MB idle with the example catalogue. Filtered discovery takes about 0.2 to 1.2 ms at 10 000 resources; queries matching the whole catalogue take up to about 3.5 ms. |
 | **No administration needed** | Environment variables only, all optional. No database: leases are soft state, and what must survive a restart (static entries, decisions, reputation evidence) is a few files in `BROKER_STATE_DIR`. |
+| **Clients in three languages** | Rust, Python and TypeScript libraries, each with a command line: a provider that announces and stays announced (heartbeats, re-announcing, a clean goodbye), and a consumer that discovers, watches and reports. See [docs/clients.md](docs/clients.md). |
 | **A console that docks to it** | An optional SvelteKit console ([ui/](ui/)) on pacod-id's design and sign-in, docking to one or several brokers' admin APIs. A broker never needs it. |
 
 ## Try it
@@ -37,11 +38,11 @@ make run-catalog
 The broker starts in open mode with [the example catalogue](examples/catalog.example.yaml): public API on `127.0.0.1:18060`, admin API on `127.0.0.1:18061`, metrics on `127.0.0.1:19160`. In another terminal:
 
 ```bash
-examples/provider.sh
+cargo run -p pacod-broker-client --bin broker-cli -- announce examples/announcement.example.yaml
 ```
 
 ```bash
-examples/consumer.sh
+cargo run -p pacod-broker-client --bin broker-cli -- --client me discover --kind model --currency EUR --sort price:input
 ```
 
 ```bash
@@ -62,6 +63,7 @@ With Docker, `make dev-up` builds and starts the broker and the console from the
 |---|---|
 | [docs/concept.md](docs/concept.md) | The design: architecture, data model, discovery, access, what is deferred and why |
 | [docs/reputation.md](docs/reputation.md) | The reputation model: criteria, computation, evidence, uses |
+| [docs/clients.md](docs/clients.md) | The Rust, Python and TypeScript clients and their command lines |
 | [docs/api.md](docs/api.md) | The public API, the admin API and MCP, with examples; [docs/openapi.json](docs/openapi.json) is generated from the code |
 | [docs/runbook.md](docs/runbook.md) | Configuration, deployment, monitoring, alerts, backups |
 | [docs/integration.md](docs/integration.md) | Joining the full stack, and the follow-ups in pacod-gw, pacod-id and pacod-demo |
@@ -75,6 +77,7 @@ With Docker, `make dev-up` builds and starts the broker and the console from the
 | `crates/pacod-broker-reputation` | Evidence, decayed aggregates, scores; the evidence log. |
 | `crates/pacod-broker` | The binary: registry and leases, APIs, MCP, tickets, pacod-id, metrics, state. |
 | `crates/pacod-broker-logging` | The pacod log format, copied from pacod-gw. |
+| `crates/pacod-broker-client`, `clients/python`, `clients/typescript` | The clients and their command lines. |
 | `ui/` | The console (SvelteKit 3). |
 | `authz/broker.yaml` | Roles and permissions for pacod-id. |
 | `deploy/`, `platform/` | Images, compose files, the alert rules and dashboard; fragments for the shared Caddy and Prometheus. |

@@ -4067,9 +4067,7 @@
           "currency",
           "free",
           "rates",
-          "source",
-          "tiers",
-          "commitments"
+          "source"
         ],
         "description": "The price in effect at one instant."
       },

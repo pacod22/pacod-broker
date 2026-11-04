@@ -1,0 +1,26 @@
+[package]
+name = "pacod-broker-client"
+description = "Rust client of pacod-broker: a provider that announces and keeps its lease alive, a consumer that discovers, watches and reports; and broker-cli, the command line on top."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "broker-cli"
+path = "src/bin/broker-cli.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+futures-util.workspace = true
+jiff.workspace = true
+pacod-broker-index.workspace = true
+pacod-broker-model.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream", "http2"] }
+serde.workspace = true
+serde_json.workspace = true
+serde-saphyr.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true

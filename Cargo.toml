@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "crates/pacod-broker",
+    "crates/pacod-broker-client",
     "crates/pacod-broker-index",
     "crates/pacod-broker-logging",
     "crates/pacod-broker-model",
@@ -19,6 +20,7 @@ rust-version = "1.90"
 publish = false
 
 [workspace.dependencies]
+pacod-broker-client = { path = "crates/pacod-broker-client" }
 pacod-broker-index = { path = "crates/pacod-broker-index" }
 pacod-broker-logging = { path = "crates/pacod-broker-logging" }
 pacod-broker-model = { path = "crates/pacod-broker-model" }

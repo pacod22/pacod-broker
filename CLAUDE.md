@@ -11,6 +11,7 @@ A discovery broker for AI and compute resources, with prices and availability ov
 | `crates/pacod-broker-reputation` | `Engine::record`, `Engine::compute`; the evidence log and snapshots. |
 | `crates/pacod-broker` | The binary: `config.rs`, `registry.rs`, `api/` (public, admin, MCP, views), `auth.rs`, `identity.rs` (pacod-id), `tickets.rs`, `state.rs`, `openapi.rs`, `server.rs`. |
 | `crates/pacod-broker-logging` | Copied from pacod-gw-logging; keep the format of pacod-demo/docs/LOGGING.md. |
+| `crates/pacod-broker-client`, `clients/python`, `clients/typescript` | The clients (docs/clients.md): same design in three languages; keep them in step. The TypeScript types come from docs/openapi.json. |
 | `ui/` | The console, SvelteKit 3, after pacod-gw's console. |
 | `authz/broker.yaml` | Roles and permissions; the binary embeds it, the console generates `authz.generated.ts` from it. |
 | `vendor/pacod-id` | pacod-id's three client crates at a pinned commit. Never edit; run `make vendor-pacod-id`. |
@@ -33,7 +34,7 @@ make bench         # discovery at 10 000 resources
 - **Prices are never retroactive** (`Pricing::check_not_retroactive`). Rank only within one kind. Convert no currency.
 - **Reputation counts only evidence with a ticket**, or what the broker observes itself.
 - **Configuration.** A new variable goes into `config.rs` (`PLAIN`) and `deploy/.env.example`; a test checks that the two agree.
-- **API changes** need `make openapi` (docs/openapi.json and the console's types). **Role changes** in `authz/broker.yaml` need `make authz`.
+- **API changes** need `make openapi` (docs/openapi.json, the console's and the TypeScript client's types), and the three clients changed alike; `make clients-test` runs them against a real broker. **Role changes** in `authz/broker.yaml` need `make authz`.
 - **Networks and names** follow pacod-demo/docs/NETWORK.md: `pacod-broker` (shared name), `broker-*` for its other services; the admin listener binds the alias `pacod-broker-admin` on `pacod-admin-net`.
 - **Never log** tokens, tickets, request bodies or descriptions.
 - **Code style.** `rustfmt.toml` (120 columns). Comments say why, in full sentences. `cargo fmt` only on this workspace's crates (`make fmt`), never on `vendor/`.

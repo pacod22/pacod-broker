@@ -1,7 +1,7 @@
 # pacod-broker: every command a developer or operator needs. `make help` lists them.
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-CRATES := -p pacod-broker -p pacod-broker-index -p pacod-broker-logging -p pacod-broker-model -p pacod-broker-reputation
+CRATES := -p pacod-broker -p pacod-broker-client -p pacod-broker-index -p pacod-broker-logging -p pacod-broker-model -p pacod-broker-reputation
 COMPOSE := docker compose -f deploy/docker-compose.yml
 VERSION ?= 0.1.0
 DEV_ENV := BROKER_LISTEN=127.0.0.1:18060 BROKER_ADMIN_LISTEN=127.0.0.1:18061 BROKER_METRICS_LISTEN=127.0.0.1:19160 BROKER_LOG_FORMAT=text
@@ -12,7 +12,7 @@ help: ## This list
 
 # --- Checks -------------------------------------------------------------------------------
 .PHONY: verify fmt fmt-check clippy test openapi openapi-check authz authz-check ui-check deny bench
-verify: fmt-check clippy test openapi-check authz-check ui-check ## Every check before a commit
+verify: fmt-check clippy test openapi-check authz-check ui-check clients-test ## Every check before a commit
 
 fmt: ## Format the Rust and console code (never the vendored crates)
 	cargo fmt $(CRATES)
@@ -27,13 +27,15 @@ clippy:
 test: ## Rust tests: no database, no network
 	cargo test --workspace
 
-openapi: ## Write docs/openapi.json and the console's API types from the code
+openapi: ## Write docs/openapi.json, the console's and the TypeScript client's types from the code
 	UPDATE_OPENAPI=1 cargo test -p pacod-broker openapi
 	cd ui && npm run api:types
+	cd clients/typescript && npm run types
 
 openapi-check: ## The committed OpenAPI document and types match the code
 	cargo test -p pacod-broker openapi
 	cd ui && npm run api:types >/dev/null && git diff --exit-code -- src/lib/api/schema.d.ts
+	cd clients/typescript && npm run types >/dev/null && git diff --exit-code -- src/schema.d.ts
 
 authz: ## Generate the console's authz.generated.ts from authz/broker.yaml
 	cd ui && npm run authz:gen
@@ -49,6 +51,17 @@ deny: ## Licences, sources and advisories (cargo install cargo-deny --locked)
 
 bench: ## Discovery at 10 000 resources
 	cargo bench -p pacod-broker-index --bench discover
+
+# --- Clients (docs/clients.md) ---------------------------------------------------------------
+.PHONY: clients clients-test
+clients: ## Install the Python client in clients/python/.venv and build the TypeScript one
+	cd clients/python && uv venv -q .venv && uv pip install -q --python .venv/bin/python -e . pytest pytest-asyncio
+	cd clients/typescript && npm ci --no-audit --no-fund && npm run build
+
+clients-test: ## The three clients against a real broker (the Rust one runs in `make test`)
+	cargo build -p pacod-broker
+	cd clients/python && .venv/bin/pytest -q
+	cd clients/typescript && npm run check && npm test
 
 # --- Running ------------------------------------------------------------------------------
 .PHONY: run run-catalog console network images up dev-up down logs smoke

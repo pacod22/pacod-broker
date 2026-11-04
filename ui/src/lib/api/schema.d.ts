@@ -1470,8 +1470,8 @@ export interface components {
             period_from?: string | null;
             /** Format: date-time */
             period_to?: string | null;
-            tiers: components["schemas"]["Tier"][];
-            commitments: components["schemas"]["Commitment"][];
+            tiers?: components["schemas"]["Tier"][];
+            commitments?: components["schemas"]["Commitment"][];
         };
         /**
          * @description The prices over a span: each rate's lowest, highest and time-weighted mean, and when they

@@ -1,0 +1,47 @@
+{
+	"name": "@pacod/broker-client",
+	"version": "0.1.0",
+	"description": "TypeScript client of pacod-broker: a provider that announces and keeps its lease alive, a consumer that discovers, watches and reports; and the pacod-broker command line.",
+	"license": "Apache-2.0",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"bin": {
+		"pacod-broker": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"types": "openapi-typescript ../../docs/openapi.json --default-non-nullable false -o src/schema.d.ts && prettier --write src/schema.d.ts",
+		"check": "tsc -p tsconfig.json --noEmit",
+		"test": "vitest run",
+		"prepare": "tsc -p tsconfig.json"
+	},
+	"dependencies": {
+		"yaml": "^2.8.1"
+	},
+	"devDependencies": {
+		"@types/node": "^24",
+		"openapi-typescript": "^7.13.0",
+		"prettier": "^3.8.3",
+		"typescript": "^6.0.3",
+		"vitest": "^5.0.3"
+	},
+	"overrides": {
+		"openapi-typescript": {
+			"typescript": "$typescript"
+		}
+	}
+}

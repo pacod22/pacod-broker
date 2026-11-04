@@ -157,9 +157,9 @@ pub struct EffectivePrice {
     pub source: String,
     pub period_from: Option<Timestamp>,
     pub period_to: Option<Timestamp>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tiers: Vec<Tier>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub commitments: Vec<Commitment>,
 }
 
