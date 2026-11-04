@@ -42,6 +42,43 @@ The concept is [pacod-gw.md](pacod-gw.md): the roles the gateway can take toward
 | A `broker` brand | `crates/pacod-id/src/config.rs` hard-codes the brands, mirrored in `packages/ui/src/lib/brands.ts` and `tokens/brands.json`. Until a `broker` brand exists, the console uses the default look and sign-in pages show the realm's brand. |
 | Organisation verification | The client `identity` component and provider `trust` would take a "verified organisation" flag from pacod-id if it had one. Until then broker admins verify providers themselves. |
 
-## 4. pacod-ap
+## 4. pacod-ap: agents as resources, and the broker as a tool
 
-Agents built on pacod-ap can use the broker as an MCP server (`/mcp`, tools `discover_resources` and `describe_resource`) to find tools and models at run time, quoting tickets when they report back.
+pacod-ap is one installation without organisations, so it announces as one provider, `pacod-ap`, with one pacod-id token holding `broker.consumer` and `broker.provider` at the platform (`BROKER_TOKEN`).
+
+| What | How |
+|---|---|
+| Agents offered | An agent's published version carries `meta.broker` (`platform` or `public`, and a summary), set in the agent editor. ap-admin-api announces each offered production agent as kind `agent`, interface `openai-chat` at `BROKER_AGENT_URL/v1`, and the agent's slug as `model.upstream_id`. Callers without an assignment may call an offered agent and nothing else. |
+| Its MCP server | `POST /mcp` on ap-api (MCP streamable HTTP, JSON answers): `list_agents`, `list_facts` and `get_fact`, for offered agents only. It is announced as kind `mcp_server`, protocol `mcp-streamable-http`, at `BROKER_MCP_URL`. |
+| The edge | `platform/caddy/ap-agents.caddy`: the site `AP_AGENT_API_SITE` routes `/v1/*` and `/mcp` to ap-api, which authenticates every call (pacod-id tokens, `pidt_` service tokens). pacod-demo serves it at `agents.<domain>`. |
+| A search tool | `broker_search` runs `POST /v1/discover` during a turn and puts the hits into the context as data, never instructions. It is opt-in: only an agent whose tool list names it gets it. Without a broker it answers "unavailable" and the turn goes on. |
+| The console | The Broker page (`/broker`) shows the status, what pacod-ap announces, and a search. The model pickers show a model's reputation where the gateway names its `broker_resource_id`. |
+| Lifecycle | The announcer rereads every `BROKER_REFRESH_SECONDS`, updates under the same lease, heartbeats, and says goodbye when nothing is offered or the service stops. Without `BROKER_URL` and `BROKER_TOKEN` nothing is announced. |
+
+## 5. pacod-cms: websites as datasets
+
+pacod-cms has organisations, so each one announces as itself, as pacod-gw's do: its members' calls never count towards its own reputation.
+
+| What | How |
+|---|---|
+| Websites offered | A website's settings screen offers it to the organisation (`organisation:<id>`), the platform or the public, with a one-line summary. The studio announces each organisation's offered, active websites as kind `dataset` under the provider `cms-<organisation>`. Each website has key = the website id and the interfaces `other:website`, `other:llms-txt`, `other:llms-full-txt`, `other:atom` and `other:sitemap`, each only while the website's own file settings leave that file on. The robots AI switches become tags (`no-ai-training`, `no-ai-answering`). |
+| Provider accounts | The studio's provisioner account holds `cms.provisioner` and the broker's `provisioner` role at the platform. With them it makes a service account `cms-broker` in an organisation when that organisation first offers a website, binds `broker.provider` there, and mints its token. The studio keeps the token in its control plane; a 401 makes it mint a new one. |
+| The AI card | With the studio's consumer token (`PACOD_BROKER_TOKEN`, `broker.consumer`), the installation screen shows the reputation, price now and state of every gateway model that names its `broker_resource_id`. It also lists the chat models the broker has that answer a JSON schema and that the gateway does not offer yet. They are shown, never selectable: a feature calls only what the gateway offers. |
+| Settings | `PACOD_BROKER_URL`, `PACOD_BROKER_TOKEN`, `PACOD_BROKER_OPEN_MODE` (a broker without tokens), `pacod.broker.refresh` and `pacod.broker.ttl`. All of it is off without the URL. |
+
+## 6. The `provisioner` role
+
+`broker.provisioner` (at the platform, permission `members.manage`, granted by `broker.manage`) lets one account give `broker.provider` at any organisation. pacod-id lets whoever holds the acting product's grant permission at a scope manage the service accounts there. Together, these let a product with organisations, such as pacod-cms, make one provider account per organisation without holding broker administration. It gives nothing else.
+
+## 7. pacod-demo's credentials
+
+The full stack's bootstrap (`scripts/bootstrap.py`) makes every token above:
+
+| Token | Roles | For |
+|---|---|---|
+| `GWB_CONSUMER_TOKEN` | `broker.consumer`, `broker.witness` | pacod-gw's bridge |
+| `PGW_BROKER_TOKEN` | `broker.consumer` | pacod-gw's core |
+| `GWB_ORG_TOKEN_<ORG>` | `broker.provider` at the organisation | the bridge, per gateway organisation |
+| `BROKER_AP_TOKEN` | `broker.consumer`, `broker.provider` | pacod-ap |
+| `CMS_BROKER_TOKEN` | `broker.consumer` | pacod-cms's studio |
+| (none) | `broker.provisioner` | added to pacod-cms's existing provisioner account |
