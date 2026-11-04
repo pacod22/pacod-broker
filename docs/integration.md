@@ -22,13 +22,17 @@ pacod-demo loads every product from sibling directories named `pacod-<product>`,
 | 12 | `home/index.html`, `home/llms.txt`, `scripts/shots.py` | A product card `#pacod-broker` (badge BR) with links to the console and the API |
 | 13 | `demo.env.example`, `README.md`, `docs/NETWORK.md`, `docs/LOGGING.md` | The reserved subdomains, the address table, the network and log tables |
 
-## 2. pacod-gw: the gateway as a provider and as a witness
+## 2. pacod-gw: the gateway as provider, source and witness
+
+The concept is [pacod-gw.md](pacod-gw.md): the roles the gateway can take towards the broker, scenarios, mappings and phases. Its first phase changes nothing in gw's core:
 
 | What | How |
 |---|---|
-| Announce its models | A small task in the core announces each workspace's callable models (`/gw/v1/models`, with prices from the repository) as resources of kind `model` with interface `pacod-gw`. It heartbeats every `heartbeat_every_s`, using a pacod-id service account with `broker.provider` in the organisation. Models deprecated or retired drop out of the next announcement. |
-| Report usage | The gateway already measures every call: outcome, time to first token, per-token latency, cost. When a call quotes a broker ticket (a header such as `X-Broker-Ticket`), the gateway sends a batched usage report to `/v1/reports/usage`. That makes it the main and most trustworthy source of `reliability`, `performance` and `accuracy` evidence. |
-| Route by the broker | Later: a template whose pool is a discovery query, re-evaluated through the watch stream. Pinned models stay pinned (assessment 4.10). |
+| A bridge service | `crates/pacod-gw-broker` and service `gw-broker` in pacod-gw, with `pacod-broker-client` vendored. A pacod-id service account holds `broker.provider` in each organisation that offers, and `broker.consumer`. |
+| Offerings | The bridge announces each organisation's chosen templates and models (interface `pacod-gw` and the dialects), with prices from gw's repository and live state from its breakers. |
+| Prices | The broker serves a feed in gw's `pacod` format; gw's price tracker reads it as any feed. |
+| Evidence | The bridge holds its own tickets for upstreams that are broker resources, and reports sampled usage from gw's analytics. A usage report counts only from the ticket's own client, so the gateway cannot report on its callers' tickets until the broker has a delegated witness (phase 2). |
+| A gw role | `broker_bridge` in `authz/gw.yaml`: reading models, prices, templates, health and analytics. |
 
 ## 3. pacod-id
 

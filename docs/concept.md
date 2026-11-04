@@ -249,7 +249,7 @@ The same engine answers `GET /v1/resources` (common filters as parameters) and t
    - Precompute each entry's availability shape and price variants for the query instant.
    - Rebuild the text index incrementally.
    - Bring whole-catalogue queries under 1 ms.
-2. **Imports (BRK-13).** pacod-gw announcing its workspace models, with gateway usage reports as reputation evidence.
+2. **pacod-gw (BRK-13).** The gateway as provider, as a source for its model repository and as a witness: the concept is [pacod-gw.md](pacod-gw.md).
 3. **Slot booking.** It would make `commitment` evidence first-hand.
 4. **Federation.** Brokers exchanging records and evidence by `origin`.
 5. **A Helm chart.**
