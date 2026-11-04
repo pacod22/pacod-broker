@@ -1,0 +1,57 @@
+# 2 models from one provider, for the limits scenario.
+ttl_s: 3
+provider:
+  name: template
+  summary: Serves Llama on GPUs.
+resources:
+- key: m0
+  kind: model
+  name: model-0
+  summary: Llama 3.3 70B Instruct.
+  tags: &id001
+  - llm
+  interfaces: &id002
+  - protocol: openai-chat
+    url: https://llama.example/v1
+    auth:
+      scheme: bearer
+  model: &id003
+    family: llama
+    context_window: 131072
+    max_output_tokens: 8192
+  capabilities: &id004
+    tools: true
+    streaming: true
+  pricing: &id005
+    currency: EUR
+    periods:
+    - valid_from: '2026-01-01T00:00:00Z'
+      rates:
+        input: 0.6
+        output: 0.9
+  availability: &id006
+    regions:
+    - eu-central
+    capacity:
+      max_concurrency: 16
+    latency:
+      ttft_ms: 300
+      ms_per_token: 20
+  policy: &id007
+    residency:
+    - eu
+    training_use: false
+  access: &id008
+    visibility: public
+- key: m1
+  kind: model
+  name: model-1
+  summary: Llama 3.3 70B Instruct.
+  tags: *id001
+  interfaces: *id002
+  model: *id003
+  capabilities: *id004
+  pricing: *id005
+  availability: *id006
+  policy: *id007
+  access: *id008

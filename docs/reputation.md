@@ -76,7 +76,7 @@ label      = new (confidence < 0.3), else low < 0.4 ≤ fair < 0.6 ≤ good < 0.
 | Discovery results | `reputation` and `provider_reputation` on every hit, with components and confidence. |
 | Discovery filters | `min_reputation` (and `min_confidence`, 0.3 by default): resources with less evidence are left out unless `min_confidence` is 0. |
 | Discovery sort | `sort: reputation`, within one kind. |
-| Provider gating | A resource's `access.min_client_reputation` hides it from clients below the threshold. `allow_new_clients` (true by default) lets clients without enough evidence through. |
+| Provider gating | A resource's `access.min_client_reputation` hides it from clients below the threshold. `allow_new_clients` (true by default) lets clients without enough evidence through. It holds in open mode too; only broker admins pass it. |
 | Ticket checks | `POST /v1/tickets/verify` tells a provider who presented a ticket and that client's reputation. |
 | The console | Scores by side, lowest first; components, evidence; freeze, unfreeze, reset; client reports that can be taken back; notes. |
 

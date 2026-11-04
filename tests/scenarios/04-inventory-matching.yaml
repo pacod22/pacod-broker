@@ -1,0 +1,20 @@
+name: inventory-matching
+about: A GPU farm and a workstation declare hardware and software; consumers filter on GPU model, memory, count and software versions.
+providers:
+  - { name: farm, from: announcements/gpu-node.yaml }
+  - { name: ws, from: announcements/workstation.yaml }
+consumers:
+  - { name: c1 }
+steps:
+  - start: [farm, ws]
+  - discover: { as: c1, query: { hardware: { gpu_model: "h100-sxm" } }, expect: { ids: [farm/node] } }
+  - discover: { as: c1, query: { hardware: { gpu_model: "RTX 4090" } }, expect: { ids: [ws/embed] } }
+  - discover: { as: c1, query: { hardware: { min_gpu_memory_gb: 48 } }, expect: { ids: [farm/node] } }
+  - discover: { as: c1, query: { hardware: { min_gpus: 9 } }, expect: { total: 0 } }
+  - discover: { as: c1, query: { hardware: { type: memory, min_memory_gb: 512 } }, expect: { ids: [farm/node] } }
+  - discover: { as: c1, query: { software: [{ name: vllm, version: ">=0.7" }, { name: cuda, version: "^12" }] }, expect: { ids: [farm/node] } }
+  - discover: { as: c1, query: { software: [{ name: vllm, version: ">=0.8" }] }, expect: { total: 0 } }
+  - discover: { as: c1, query: { software: [{ name: ollama }] }, expect: { ids: [ws/embed] } }
+  - discover: { as: c1, query: { kind: compute, hardware: { gpu_model: H100-SXM }, max_price: { per_gpu_hour: 3 } }, expect: { ids: [farm/node] } }
+  - discover: { as: c1, query: { software: [{ name: vllm, version: "not a range" }] }, status: 422 }
+  - provider_view: { as: c1, provider: farm, expect: { fields: { "profile.inventory.hardware[0].model": H100-SXM } } }

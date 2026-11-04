@@ -1,0 +1,12 @@
+name: heartbeat-storm
+about: 2 000 providers with one resource each and a 5 s lease, all heartbeating, while a few consumers search. No lease may run out.
+template: ../scenarios/announcements/mcp-weather.yaml
+providers: { count: 2000, resources_each: 1, ttl_s: 5 }
+consumers:
+  count: 4
+  queries:
+    - { query: { kind: mcp_server, limit: 10 } }
+warmup: 5s
+duration: 30s
+# Over HTTP the 2 000 providers share the CPUs with the broker; inside it, a heartbeat touches atomics only.
+targets: { server_heartbeat_p99_ms: 1, leases_expired: 0, errors: 0 }

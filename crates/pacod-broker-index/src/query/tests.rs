@@ -113,6 +113,10 @@ fn providers_can_keep_resources_from_low_reputation_clients() {
     // New clients are kept out too here: `allow_new_clients: false`.
     let new = Viewer { authenticated: true, reputation: Some((0.9, 0.1)), ..Viewer::default() };
     assert_eq!(run(&idx, json!({"kind": "model"}), &new).unwrap().total, 1);
+    // Seeing every visibility (open mode) is not a pass through the threshold; reviewing is.
+    let open = Viewer { all: true, authenticated: true, reputation: Some((0.4, 0.9)), ..Viewer::default() };
+    assert_eq!(names(&run(&idx, json!({"kind": "model"}), &open).unwrap()), ["farm/llama-3.3-70b"]);
+    assert_eq!(run(&idx, json!({"kind": "model"}), &Viewer::everything()).unwrap().total, 2);
 }
 
 #[test]

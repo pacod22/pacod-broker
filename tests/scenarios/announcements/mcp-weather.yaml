@@ -1,0 +1,19 @@
+# A free MCP server.
+ttl_s: 3
+provider:
+  name: template
+  summary: Hosted MCP tools.
+resources:
+  - key: weather
+    kind: mcp_server
+    name: weather
+    summary: Forecasts as MCP tools.
+    tags: [tools]
+    interfaces:
+      - { protocol: mcp-streamable-http, url: "https://tools.example/weather/mcp" }
+    capabilities:
+      mcp_tools:
+        - { name: forecast, description: Forecast for a city }
+    pricing: { free: true }
+    availability: { regions: [us-east], latency: { ttft_ms: 80 } }
+    access: { visibility: public }

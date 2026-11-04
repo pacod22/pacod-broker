@@ -1,0 +1,40 @@
+name: bad-clients
+about: Three providers report a client for abuse, non-payment and no-shows; a fourth provider's model admits only clients with a reputation of at least 0.45. The bad client loses access; a reset gives it back.
+broker:
+  env: { BROKER_REPUTATION_PRIOR_WEIGHT: "2" }
+providers:
+  - { name: gate, from: announcements/llama.yaml, set: { "resources[0].access.min_client_reputation": 0.45 } }
+  - { name: p1, from: announcements/mcp-weather.yaml }
+  - { name: p2, from: announcements/mcp-weather.yaml }
+  - { name: p3, from: announcements/mcp-weather.yaml }
+consumers:
+  - { name: good }
+  - { name: bad }
+steps:
+  - start: [gate, p1, p2, p3]
+  # Both start new: new clients are let in.
+  - discover: { as: bad, query: { kind: model }, expect: { ids: [gate/llama] } }
+  - report_client: { provider: p1, about: bad, on: p1/weather, kind: abuse }
+  - report_client: { provider: p1, about: bad, on: p1/weather, kind: abuse }
+  - report_client: { provider: p1, about: bad, on: p1/weather, kind: abuse }
+  - report_client: { provider: p2, about: bad, on: p2/weather, kind: non_payment }
+  - report_client: { provider: p2, about: bad, on: p2/weather, kind: non_payment }
+  - report_client: { provider: p2, about: bad, on: p2/weather, kind: non_payment }
+  - report_client: { provider: p3, about: bad, on: p3/weather, kind: no_show }
+  - report_client: { provider: p3, about: bad, on: p3/weather, kind: no_show }
+  - report_client: { provider: p3, about: bad, on: p3/weather, kind: no_show }
+  - report_client: { provider: p1, about: good, on: p1/weather, kind: good_standing }
+  - report_client: { provider: p2, about: good, on: p2/weather, kind: good_standing }
+  - report_client: { provider: p3, about: good, on: p3/weather, kind: good_standing }
+  # Open mode cannot tell providers apart, so the check that a provider reports only on its own
+  # resources' tickets is in the oidc scenario `roles`.
+  - reputation:
+      expect:
+        client bad: { score: "<0.3", confidence: ">=0.3", components.conduct.score: "<0.2" }
+        client good: { score: ">=0.45", confidence: ">=0.3" }
+  - discover: { as: bad, query: { kind: model }, expect: { total: 0 } }
+  - discover: { as: good, query: { kind: model }, expect: { ids: [gate/llama] } }
+  # Taking one report back counts it as undone; a reset clears the client's record.
+  - admin: { action: reject_report, target: bad }
+  - admin: { action: reset, side: client, target: bad }
+  - discover: { as: bad, query: { kind: model }, expect: { ids: [gate/llama] } }

@@ -1,0 +1,40 @@
+# A model with prices and hours that change over time (Europe/Sofia is UTC+2 in November):
+# - prices: 0.6 by day; 0.25 off-peak 22:00–06:00; free over Christmas; 0.9 from 2027;
+# - hours: weekdays 08:00–20:00 with capacity 4, weekends all day with 8;
+# - maintenance: Saturday 14 November 2026, 01:00–03:00 UTC.
+ttl_s: 3
+provider:
+  name: template
+  summary: Serves by day on weekdays, all weekend.
+resources:
+  - key: llama
+    kind: model
+    name: llama-night-shift
+    summary: Llama with off-peak prices and opening hours.
+    tags: [night]
+    interfaces:
+      - { protocol: openai-chat, url: "https://night.example/v1" }
+    pricing:
+      currency: EUR
+      timezone: Europe/Sofia
+      periods:
+        - valid_from: "2026-01-01T00:00:00Z"
+          valid_to: "2027-01-01T00:00:00Z"
+          rates: { input: 0.6, output: 0.9 }
+          windows:
+            - { name: off-peak, from_time: "22:00", to_time: "06:00", rates: { input: 0.25 } }
+          overrides:
+            - { from: "2026-12-24T00:00:00Z", to: "2026-12-27T00:00:00Z", rates: { input: 0.0 }, reason: Christmas }
+        - valid_from: "2027-01-01T00:00:00Z"
+          rates: { input: 0.9, output: 1.2 }
+    availability:
+      valid_from: "2026-11-01T00:00:00Z"
+      capacity: { max_concurrency: 8 }
+      schedule:
+        timezone: Europe/Sofia
+        rules:
+          - { weekdays: [mon, tue, wed, thu, fri], from_time: "08:00", to_time: "20:00", capacity: 4 }
+          - { weekdays: [sat, sun], from_time: "00:00", to_time: "24:00", capacity: 8 }
+        maintenance:
+          - { from: "2026-11-14T01:00:00Z", to: "2026-11-14T03:00:00Z", reason: Driver upgrade }
+    access: { visibility: public }

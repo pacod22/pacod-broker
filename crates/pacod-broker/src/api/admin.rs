@@ -584,7 +584,7 @@ async fn events(
             Err(_) => Event::default().event("resync").data("{}"),
         })
     });
-    Ok(Sse::new(s).keep_alive(KeepAlive::default()))
+    Ok(Sse::new(s.take_until(super::public::shutting_down())).keep_alive(KeepAlive::default()))
 }
 
 async fn openapi() -> Json<serde_json::Value> {

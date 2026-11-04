@@ -1,7 +1,7 @@
 # pacod-broker: every command a developer or operator needs. `make help` lists them.
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-CRATES := -p pacod-broker -p pacod-broker-client -p pacod-broker-index -p pacod-broker-logging -p pacod-broker-model -p pacod-broker-reputation
+CRATES := -p pacod-broker -p pacod-broker-client -p pacod-broker-index -p pacod-broker-logging -p pacod-broker-model -p pacod-broker-reputation -p pacod-broker-suite
 COMPOSE := docker compose -f deploy/docker-compose.yml
 VERSION ?= 0.1.0
 DEV_ENV := BROKER_LISTEN=127.0.0.1:18060 BROKER_ADMIN_LISTEN=127.0.0.1:18061 BROKER_METRICS_LISTEN=127.0.0.1:19160 BROKER_LOG_FORMAT=text
@@ -51,6 +51,24 @@ deny: ## Licences, sources and advisories (cargo install cargo-deny --locked)
 
 bench: ## Discovery at 10 000 resources
 	cargo bench -p pacod-broker-index --bench discover
+
+# --- The scenario and load suite (docs/testing.md) -------------------------------------------
+.PHONY: suite suite-load suite-one
+SUITE := cargo run -q --release -p pacod-broker-suite -- --broker target/release/pacod-broker
+SCALE ?= 1
+
+suite: ## Every scenario against the release broker; report in target/suite
+	cargo build -q --release -p pacod-broker
+	$(SUITE)
+
+suite-load: ## The load runs (SCALE=0.2 for a fifth of their size); report in target/suite
+	cargo build -q --release -p pacod-broker
+	$(SUITE) --load --scale $(SCALE)
+
+suite-one: ## The scenarios or load runs whose name contains S (make suite-one S=lifecycle)
+	@test -n "$(S)" || { echo "S=<name> is needed"; exit 1; }
+	cargo build -q --release -p pacod-broker
+	$(SUITE) --all --only $(S) --scale $(SCALE)
 
 # --- Clients (docs/clients.md) ---------------------------------------------------------------
 .PHONY: clients clients-test

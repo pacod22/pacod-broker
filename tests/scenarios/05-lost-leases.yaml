@@ -1,0 +1,21 @@
+name: lost-leases
+about: A lease the broker forgets (an admin ends it) and a provider that crashes. The first announces again by itself with the same ids; the second disappears once its lease runs out.
+providers:
+  - { name: steady, from: announcements/llama.yaml }
+  - { name: crashy, from: announcements/mcp-weather.yaml }
+consumers:
+  - { name: c1 }
+steps:
+  - watch: { as: c1 }
+  - start: [steady, crashy]
+  - discover: { as: c1, expect: { ids: [steady/llama, crashy/weather] } }
+  - admin: { action: evict, target: steady }
+  - wait_for: { as: c1, gone: steady/llama, within: 2s }
+  # The next heartbeat finds the lease unknown; the provider announces again.
+  - wait_for: { as: c1, present: steady/llama, within: 5s }
+  - crash: crashy
+  # Still there until the lease (3 s) runs out, then gone.
+  - resource: { as: c1, id: crashy/weather, expect: { fields: { key: weather } } }
+  - wait_for: { as: c1, gone: crashy/weather, within: 6s }
+  - expect_events: { as: c1, contains: [upserted, removed, generation] }
+  - metrics: { expect: { broker_leases_expired_total: ">=1" } }

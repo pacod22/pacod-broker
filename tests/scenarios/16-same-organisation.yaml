@@ -1,0 +1,27 @@
+name: same-organisation
+about: A provider's own organisation cannot raise its reputation. Ratings and usage reports from a member of the provider's organisation are accepted but not counted; the same from another organisation count.
+broker:
+  auth: oidc
+identity:
+  organisations: [acme, globex]
+  principals:
+    - { name: farm-svc, kind: service, organisation: acme, roles: [broker.provider@organisation] }
+    - { name: insider, kind: user, organisation: acme, roles: [broker.consumer@organisation] }
+    - { name: outsider, kind: user, organisation: globex, roles: [broker.consumer@organisation] }
+providers:
+  - { name: farm, from: announcements/llama.yaml, as: farm-svc }
+consumers:
+  - { name: insider, as: insider }
+  - { name: outsider, as: outsider }
+steps:
+  - start: farm
+  - rate: { as: insider, on: farm/llama, rating: 5, accepted: 0 }
+  - report: { as: insider, on: farm/llama, outcome: ok, ttft_ms: 100, times: 20, accepted: 0 }
+  - rate: { as: outsider, on: farm/llama, rating: 1, accepted: 1 }
+  - report: { as: outsider, on: farm/llama, outcome: server_error, times: 5, accepted: 5 }
+  - reputation:
+      expect:
+        resource farm/llama:
+          components.quality.samples: "<1.01"
+          components.reliability.samples: "<5.01"
+          components.quality.score: "<0.5"

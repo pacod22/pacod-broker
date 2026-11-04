@@ -117,6 +117,15 @@ export class Provider {
 		this.schedule();
 	}
 
+	/**
+	 * Stops the heartbeats without a goodbye, as a crash would: the lease runs out after its TTL
+	 * and counts against the provider's lease discipline.
+	 */
+	abandon(): void {
+		this.stopped = true;
+		if (this.timer) clearTimeout(this.timer);
+	}
+
 	/** Stops the heartbeats and ends the lease cleanly. */
 	async stop(): Promise<void> {
 		this.stopped = true;

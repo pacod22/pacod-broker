@@ -64,6 +64,7 @@ With Docker, `make dev-up` builds and starts the broker and the console from the
 | [docs/concept.md](docs/concept.md) | The design: architecture, data model, discovery, access, what is deferred and why |
 | [docs/reputation.md](docs/reputation.md) | The reputation model: criteria, computation, evidence, uses |
 | [docs/clients.md](docs/clients.md) | The Rust, Python and TypeScript clients and their command lines |
+| [docs/testing.md](docs/testing.md) | The scenario and load suite: configurations of providers and consumers against the real broker |
 | [docs/api.md](docs/api.md) | The public API, the admin API and MCP, with examples; [docs/openapi.json](docs/openapi.json) is generated from the code |
 | [docs/runbook.md](docs/runbook.md) | Configuration, deployment, monitoring, alerts, backups |
 | [docs/integration.md](docs/integration.md) | Joining the full stack, and the follow-ups in pacod-gw, pacod-id and pacod-demo |

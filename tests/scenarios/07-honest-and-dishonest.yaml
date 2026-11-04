@@ -1,0 +1,22 @@
+name: honest-and-dishonest
+about: One provider tells the truth about latency and price; another claims 100 ms and 0.3 but serves in 900 ms and charges 0.9. Usage reports reveal it.
+broker:
+  env: { BROKER_REPUTATION_PRIOR_WEIGHT: "2" }
+providers:
+  - { name: honest, from: announcements/llama.yaml }
+  - { name: liar, from: announcements/llama.yaml, set: { "resources[0].pricing.periods[0].rates.input": 0.3, "resources[0].availability.latency.ttft_ms": 100 } }
+consumers:
+  - { name: c1 }
+  - { name: c2 }
+steps:
+  - start: [honest, liar]
+  - report: { as: c1, on: honest/llama, outcome: ok, ttft_ms: 280, ms_per_token: 18, price_charged: 0.6, rate: input, times: 15, accepted: 15 }
+  - report: { as: c2, on: honest/llama, outcome: ok, ttft_ms: 290, ms_per_token: 19, price_charged: 0.6, rate: input, times: 15, accepted: 15 }
+  - report: { as: c1, on: liar/llama, outcome: ok, ttft_ms: 900, ms_per_token: 40, price_charged: 0.9, rate: input, times: 15, accepted: 15 }
+  - report: { as: c2, on: liar/llama, outcome: ok, ttft_ms: 950, ms_per_token: 42, price_charged: 0.9, rate: input, times: 15, accepted: 15 }
+  - reputation:
+      expect:
+        resource honest/llama: { components.accuracy.score: ">0.9", components.performance.score: ">0.6" }
+        resource liar/llama: { components.accuracy.score: "<0.45", components.performance.score: "<0.4" }
+        provider liar: { components.accuracy.score: "<0.45" }
+  - discover: { as: c1, query: { kind: model, sort: reputation, min_confidence: 0 }, expect: { order: [honest/llama, liar/llama] } }

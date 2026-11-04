@@ -1,0 +1,26 @@
+# A served open-weights model: OpenAI-compatible, EUR prices, declared latency, EU data.
+ttl_s: 3
+provider:
+  name: template
+  summary: Serves Llama on GPUs.
+resources:
+  - key: llama
+    kind: model
+    name: llama-3.3-70b
+    summary: Llama 3.3 70B Instruct.
+    tags: [llm]
+    interfaces:
+      - { protocol: openai-chat, url: "https://llama.example/v1", auth: { scheme: bearer } }
+    model: { family: llama, context_window: 131072, max_output_tokens: 8192 }
+    capabilities: { tools: true, streaming: true }
+    pricing:
+      currency: EUR
+      periods:
+        - valid_from: "2026-01-01T00:00:00Z"
+          rates: { input: 0.6, output: 0.9 }
+    availability:
+      regions: [eu-central]
+      capacity: { max_concurrency: 16 }
+      latency: { ttft_ms: 300, ms_per_token: 20 }
+    policy: { residency: [eu], training_use: false }
+    access: { visibility: public }

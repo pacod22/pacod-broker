@@ -1,0 +1,36 @@
+name: ranking-within-a-kind
+about: Three providers serve one model at different prices, speeds and quality; a fourth in USD. Consumers sort by price, latency and reputation, always within one kind and one currency.
+broker:
+  env: { BROKER_REPUTATION_PRIOR_WEIGHT: "2" }
+providers:
+  - { name: cheap, from: announcements/llama.yaml, set: { "resources[0].pricing.periods[0].rates.input": 0.2, "resources[0].availability.latency.ttft_ms": 500 } }
+  - { name: mid, from: announcements/llama.yaml, set: { "resources[0].pricing.periods[0].rates.input": 0.5, "resources[0].availability.latency.ttft_ms": 300 } }
+  - { name: fast, from: announcements/llama.yaml, set: { "resources[0].pricing.periods[0].rates.input": 0.8, "resources[0].availability.latency.ttft_ms": 100 } }
+  - { name: usd, from: announcements/llama.yaml, set: { "resources[0].pricing.currency": USD, "resources[0].pricing.periods[0].rates.input": 0.1 } }
+consumers:
+  - { name: c1 }
+steps:
+  - start: [cheap, mid, fast, usd]
+  - discover:
+      as: c1
+      query: { kind: model, currency: EUR, sort: "price:input" }
+      expect: { total: 3, order: [cheap/llama, mid/llama, fast/llama], fields: { "hits[0].why.sorted_by": "price:input", "hits[0].why.sort_value": 0.2 } }
+  # The broker converts no currency: without one, 0.1 USD sorts before 0.2 EUR.
+  - discover: { as: c1, query: { kind: model, sort: "price:input" }, expect: { total: 4, order: [usd/llama, cheap/llama] } }
+  - discover: { as: c1, query: { kind: model, currency: EUR, sort: ttft }, expect: { order: [fast/llama, mid/llama, cheap/llama] } }
+  - discover: { as: c1, query: { kind: model, currency: EUR, max_price: { input: 0.5 } }, expect: { ids: [cheap/llama, mid/llama] } }
+  # Comparing across kinds is refused.
+  - discover: { as: c1, query: { sort: reputation }, status: 422 }
+  - discover: { as: c1, query: { sort: "price:input" }, status: 422 }
+  # Calls go well at fast, badly at cheap.
+  - report: { as: c1, on: fast/llama, outcome: ok, ttft_ms: 90, times: 20, accepted: 20 }
+  - report: { as: c1, on: cheap/llama, outcome: server_error, times: 20, accepted: 20 }
+  - reputation:
+      expect:
+        resource fast/llama: { components.reliability.score: ">0.85", label: "!=new" }
+        resource cheap/llama: { components.reliability.score: "<0.15" }
+  - discover: { as: c1, query: { kind: model, currency: EUR, sort: reputation }, expect: { "order": [fast/llama] } }
+  - discover:
+      as: c1
+      query: { kind: model, currency: EUR, min_reputation: 0.55, min_confidence: 0.3 }
+      expect: { ids: [fast/llama] }

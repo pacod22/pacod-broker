@@ -1,0 +1,56 @@
+name: prices-and-hours
+about: Prices with an off-peak window, a one-off price and a future period; opening hours, maintenance and capacity. Discovery at instants and over spans.
+providers:
+  - { name: night, from: announcements/night-shift.yaml }
+consumers:
+  - { name: c1 }
+steps:
+  - start: night
+  # Tuesday 10 November, 12:00 in Sofia: open, base price, capacity 4.
+  - discover:
+      as: c1
+      query: { tags: [night], at: "2026-11-10T10:00:00Z" }
+      expect: { total: 1, fields: { "hits[0].price.rates.input": 0.6, "hits[0].price.source": base, "hits[0].capacity": 4 } }
+  # 23:00 in Sofia: closed on a weekday night, so not found; with closed ones, the off-peak price.
+  - discover: { as: c1, query: { tags: [night], at: "2026-11-10T21:00:00Z" }, expect: { total: 0 } }
+  - discover:
+      as: c1
+      query: { tags: [night], at: "2026-11-10T21:00:00Z", include_unavailable: true }
+      expect: { total: 1, fields: { "hits[0].available": false, "hits[0].price.source": "window:off-peak", "hits[0].price.rates.input": 0.25, "hits[0].price.rates.output": 0.9 } }
+  # Christmas Eve, a Thursday: the one-off price wins.
+  - discover:
+      as: c1
+      query: { tags: [night], at: "2026-12-24T10:00:00Z" }
+      expect: { fields: { "hits[0].price.source": override, "hits[0].price.rates.input": 0 } }
+  # 2027: the next period.
+  - discover:
+      as: c1
+      query: { tags: [night], at: "2027-01-05T10:00:00Z" }
+      expect: { fields: { "hits[0].price.rates.input": 0.9, "hits[0].price.period_from": "2027-01-01T00:00:00Z" } }
+  # Before the listing starts: nothing.
+  - discover: { as: c1, query: { tags: [night], at: "2026-10-20T10:00:00Z" }, expect: { total: 0 } }
+  # A whole Tuesday working day (06:00–18:00 UTC is 08:00–20:00 in Sofia): fully available with 4.
+  - discover:
+      as: c1
+      query: { tags: [night], during: { from: "2026-11-10T06:00:00Z", to: "2026-11-10T18:00:00Z" }, availability: { min_capacity: 4 } }
+      expect: { total: 1, fields: { "hits[0].availability_summary.available_share": 1, "hits[0].price_summary.rates.input.avg": 0.6 } }
+  - discover:
+      as: c1
+      query: { tags: [night], during: { from: "2026-11-10T06:00:00Z", to: "2026-11-10T18:00:00Z" }, availability: { min_capacity: 5 } }
+      expect: { total: 0 }
+  # Saturday night with maintenance from 01:00 to 03:00 UTC: not fully, but partly.
+  - discover:
+      as: c1
+      query: { tags: [night], during: { from: "2026-11-14T00:00:00Z", to: "2026-11-14T06:00:00Z" } }
+      expect: { total: 0 }
+  - discover:
+      as: c1
+      query: { tags: [night], during: { from: "2026-11-14T00:00:00Z", to: "2026-11-14T06:00:00Z" }, availability: { coverage: any } }
+      expect: { total: 1, fields: { "hits[0].availability_summary.available_share": "<0.7", "hits[0].price_summary.rates.input.min": 0.25 } }
+  # A span over a price change: lowest, highest and the time-weighted mean.
+  - discover:
+      as: c1
+      query: { tags: [night], during: { from: "2026-11-14T06:00:00Z", to: "2026-11-15T06:00:00Z" } }
+      expect: { fields: { "hits[0].price_summary.rates.input.min": 0.25, "hits[0].price_summary.rates.input.max": 0.6 } }
+  # A span may not exceed 62 days.
+  - discover: { as: c1, query: { tags: [night], during: { from: "2026-11-01T00:00:00Z", to: "2027-02-01T00:00:00Z" } }, status: 422 }

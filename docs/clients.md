@@ -31,6 +31,7 @@ A provider announces its profile and resources, then keeps the lease alive:
 2. **Re-announcing.** When the broker answers 404 to a heartbeat, it no longer knows the lease: it restarted, or the lease ran out while the network was down. The provider then announces again by itself. Resource ids do not change, because the broker derives them from the provider and the key.
 3. **Retries.** When the broker cannot be reached, the provider tries again with back-off (1, 2, 4… seconds, never more than the heartbeat interval).
 4. **Goodbye.** `stop` ends the lease cleanly. Reputation counts this in the provider's favour; a lease that just runs out counts against it.
+5. **Abandon.** `abandon` stops the heartbeats without a goodbye, as a crash would; the lease runs out at its TTL. It exists for tests of what the broker does then (docs/testing.md).
 
 Announcements are written as YAML or JSON, like [examples/announcement.example.yaml](../examples/announcement.example.yaml) ([concept.md](concept.md) section 3 explains the fields).
 

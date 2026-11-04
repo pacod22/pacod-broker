@@ -106,6 +106,7 @@ impl Server {
     /// Stops taking requests, finishes those running, and writes what is kept.
     pub async fn shutdown(self) {
         api::public::DRAINING.store(true, std::sync::atomic::Ordering::Relaxed);
+        api::public::SHUTDOWN.send_replace(true);
         let _ = self.stop.send(true);
         for s in self.servers {
             let _ = tokio::time::timeout(std::time::Duration::from_secs(10), s).await;

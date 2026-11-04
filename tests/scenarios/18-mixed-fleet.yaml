@@ -1,0 +1,25 @@
+name: mixed-fleet
+about: Thirty providers of three kinds and three consumers with different queries; every answer must equal the scenario's own filter of what was announced, before and after a third of the fleet crashes.
+providers:
+  - { name: m, from: announcements/llama.yaml, count: 12, vary: { "resources[0].pricing.periods[0].rates.input": [0.1, 1.2], "resources[0].model.context_window": [8000, 200000] } }
+  - { name: t, from: announcements/mcp-weather.yaml, count: 8 }
+  - { name: g, from: announcements/gpu-node.yaml, count: 10, vary: { "resources[0].pricing.periods[0].rates.per_gpu_hour": [1.0, 4.0] } }
+consumers:
+  - { name: c1 }
+  - { name: c2 }
+  - { name: c3 }
+steps:
+  - start: [m, t, g]
+  - discover: { as: c1, query: { limit: 200 }, expect: { total: 30, oracle: true } }
+  - discover: { as: c1, query: { kind: model, currency: EUR, max_price: { input: 0.5 }, limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c2, query: { capabilities: [tools], limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c2, query: { protocols: [mcp-streamable-http, http], limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c3, query: { regions: [eu-central], limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c3, query: { kind: compute, max_price: { per_gpu_hour: 2.5 }, limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c1, query: { residency: [eu], no_training_use: true, limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c2, query: { model: { min_context_window: 100000 }, limit: 200 }, expect: { oracle: true } }
+  - discover: { as: c3, query: { capabilities: ["mcp_tool:forecast"], limit: 200 }, expect: { oracle: true } }
+  - crash: [m-1, m-2, m-3, m-4, t-1, t-2, g-1, g-2, g-3, g-4]
+  - wait: 5s
+  - discover: { as: c1, query: { limit: 200 }, expect: { total: 20, oracle: true } }
+  - discover: { as: c3, query: { kind: compute, max_price: { per_gpu_hour: 2.5 }, limit: 200 }, expect: { oracle: true } }

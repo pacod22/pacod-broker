@@ -32,6 +32,19 @@ use crate::registry::{Announcement, Change, Heartbeat};
 /// Set while the broker shuts down: `/readyz` fails so load balancers stop sending.
 pub static DRAINING: AtomicBool = AtomicBool::new(false);
 
+/// Becomes true when the broker stops. Long-lived streams (watch, admin events) end on it, so
+/// a graceful shutdown does not wait for watchers to hang up.
+pub static SHUTDOWN: std::sync::LazyLock<tokio::sync::watch::Sender<bool>> =
+    std::sync::LazyLock::new(|| tokio::sync::watch::channel(false).0);
+
+/// A future that completes when the broker stops.
+pub fn shutting_down() -> impl std::future::Future<Output = ()> + Send + 'static {
+    let mut rx = SHUTDOWN.subscribe();
+    async move {
+        let _ = rx.wait_for(|v| *v).await;
+    }
+}
+
 pub fn router(app: Shared) -> Router {
     Router::new()
         .route("/healthz", get(|| async { "ok" }))
@@ -290,7 +303,7 @@ async fn watch(
         }
     });
     let stream = futures_util::stream::once(async move { Ok(first) }).chain(changes);
-    Ok(Sse::new(stream).keep_alive(KeepAlive::default()))
+    Ok(Sse::new(stream.take_until(shutting_down())).keep_alive(KeepAlive::default()))
 }
 
 // --- Reports -------------------------------------------------------------------------------

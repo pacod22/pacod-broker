@@ -1,0 +1,33 @@
+name: lifecycle
+about: One provider and one consumer through a whole lease, in open mode.
+providers:
+  - { name: farm, from: announcements/llama.yaml }
+consumers:
+  - { name: alice }
+steps:
+  - watch: { as: alice }
+  - start: farm
+  - discover:
+      as: alice
+      query: { kind: model }
+      expect:
+        ids: [farm/llama]
+        fields:
+          hits[0].provider.name: farm
+          hits[0].ticket: "~tkt_"
+          hits[0].why.matched[0]: available
+  - live: { provider: farm, status: degraded, in_use: 5, ttft_ms: 280 }
+  - resource:
+      as: alice
+      id: farm/llama
+      within: 4s
+      expect: { fields: { live.status: degraded, live.in_use: 5, live.ttft_ms: 280 } }
+  - provider_view: { as: alice, provider: farm, expect: { fields: { "resources[0].key": llama } } }
+  - expect_events: { as: alice, contains: [hello, upserted, generation] }
+  - stop: farm
+  - wait_for: { as: alice, gone: farm/llama, within: 3s }
+  - expect_events: { as: alice, contains: [removed] }
+  # A new lease for the same provider and key gives the same resource id.
+  - start: farm
+  - resource: { as: alice, id: farm/llama, expect: { fields: { key: llama } } }
+  - metrics: { expect: { broker_announces_total: ">=2", broker_heartbeats_total: ">=1" } }

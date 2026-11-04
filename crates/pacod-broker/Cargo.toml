@@ -49,4 +49,6 @@ uuid.workspace = true
 [dev-dependencies]
 # The clients' end-to-end test runs against this broker.
 pacod-broker-client.workspace = true
+# The scenario suite runs against this crate's binary (tests/scenarios.rs).
+pacod-broker-suite.workspace = true
 tower = { workspace = true, features = ["util"] }

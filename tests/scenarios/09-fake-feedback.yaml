@@ -1,0 +1,18 @@
+name: fake-feedback
+about: Ratings and reports that must not count; without a ticket, with another client's ticket, a second rating within the hour, and more usage reports than one client counts per hour.
+providers:
+  - { name: p, from: announcements/llama.yaml }
+consumers:
+  - { name: honest }
+  - { name: faker }
+steps:
+  - start: p
+  - rate: { as: faker, on: p/llama, rating: 1, ticket_of: honest, status: 422 }
+  - report: { as: faker, on: p/llama, outcome: server_error, no_ticket: true, accepted: 0 }
+  - report: { as: faker, on: p/llama, outcome: server_error, ticket_of: honest, accepted: 0 }
+  - rate: { as: faker, on: p/llama, rating: 1, accepted: 1 }
+  - rate: { as: faker, on: p/llama, rating: 1, accepted: 0 }
+  - report: { as: honest, on: p/llama, outcome: ok, times: 130, accepted: 120 }
+  - reputation:
+      expect:
+        resource p/llama: { components.quality.samples: "<1.01", components.reliability.samples: "<120.01" }

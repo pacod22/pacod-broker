@@ -181,4 +181,13 @@ impl Running {
             other => other,
         }
     }
+
+    /// Stops the heartbeats without a goodbye, as a crash would: the lease runs out after its
+    /// TTL and counts against the provider's lease discipline. For handing a lease to another
+    /// process, and for tests.
+    pub async fn abandon(self) -> Announced {
+        let _ = self.stop.send(true);
+        let _ = self.task.await;
+        self.announced.read().await.clone()
+    }
 }

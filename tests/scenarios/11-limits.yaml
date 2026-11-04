@@ -1,0 +1,30 @@
+name: limits
+about: Small limits on resources, leases, descriptions and TTLs; each refusal names its problem and the broker stays healthy.
+broker:
+  env:
+    BROKER_MAX_RESOURCES: "3"
+    BROKER_MAX_RESOURCES_PER_PROVIDER: "2"
+    BROKER_MAX_LEASES_PER_PROVIDER: "1"
+    BROKER_MAX_DESCRIPTION_BYTES: "300"
+    BROKER_LEASE_TTL_MAX: "60"
+providers:
+  - { name: three, from: announcements/three-models.yaml }
+  - { name: wordy, from: announcements/llama.yaml, set: { "resources[0].description": "This description is far too long for the limit of three hundred bytes that this scenario sets on purpose, and it goes on and on, repeating itself: far too long, far too long, far too long, far too long, far too long, far too long, far too long, far too long, far too long, far too long, far too long, and longer still." } }
+  - { name: forever, from: announcements/llama.yaml, set: { ttl_s: 7200 } }
+  - { name: twice, from: announcements/llama.yaml }
+  - { name: q1, from: announcements/two-models.yaml }
+  - { name: q2, from: announcements/two-models.yaml }
+consumers:
+  - { name: c1 }
+steps:
+  - announce: { provider: three, status: 422 }
+  - announce: { provider: wordy, status: 422 }
+  - announce: { provider: forever, status: 422 }
+  # One lease per provider: a second announcement without the lease id is refused.
+  - announce: { provider: twice }
+  - announce: { provider: twice, status: 429 }
+  # Three resources in all: twice holds 1, q1 takes 2, q2 does not fit.
+  - announce: { provider: q1 }
+  - announce: { provider: q2, status: 429 }
+  - discover: { as: c1, expect: { total: 3 } }
+  - metrics: { expect: { broker_announces_refused_total: ">=5" } }

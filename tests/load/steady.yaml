@@ -1,0 +1,17 @@
+name: steady
+about: A steady catalogue of 50 providers with 20 resources each, and 32 consumers running filtered queries without pause.
+template: ../scenarios/announcements/llama.yaml
+providers: { count: 50, resources_each: 20, ttl_s: 30, kinds: [model, model, embedding, tool] }
+consumers:
+  count: 32
+  queries:
+    - { weight: 4, query: { kind: model, currency: EUR, sort: "price:input", limit: 10 } }
+    - { weight: 2, query: { kind: model, capabilities: [tools], regions: [eu-central] } }
+    - { weight: 2, query: { kind: model, currency: EUR, max_price: { input: 1.5 }, sort: ttft } }
+    - { weight: 1, query: { q: "llama instruct", limit: 20 } }
+    - { weight: 1, query: { kind: embedding, residency: [eu] } }
+warmup: 3s
+duration: 60s
+# The consumers run without pause on the broker's own CPUs, so latency over HTTP is mostly queueing
+# (Little's law) and the report shows it without a target; the target is inside the broker.
+targets: { server_discover_p99_ms: 2, discover_per_second: 500, errors: 0 }

@@ -1,0 +1,16 @@
+name: churn
+about: Providers that join, crash without a goodbye and come back, over and over, while consumers search. Rebuilds stay quick and no answer carries a lease that has run out.
+template: ../scenarios/announcements/llama.yaml
+providers:
+  count: 300
+  resources_each: 5
+  ttl_s: 3
+  churn: { up: "3s..8s", down: "5s" }
+consumers:
+  count: 16
+  queries:
+    - { weight: 2, query: { kind: model, currency: EUR, sort: "price:input", limit: 50 } }
+    - { query: { kind: model, regions: [eu-central] } }
+warmup: 4s
+duration: 45s
+targets: { rebuild_p99_ms: 500, stale_hits: 0, errors: 0 }

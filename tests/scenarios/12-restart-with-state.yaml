@@ -1,0 +1,27 @@
+name: restart-with-state
+about: A broker with a state directory restarts twice, cleanly and by a kill. Static entries, decisions and reputation survive; leased providers announce again by themselves.
+broker:
+  state_dir: true
+providers:
+  - { name: p, from: announcements/llama.yaml }
+  - { name: banned, from: announcements/mcp-weather.yaml }
+consumers:
+  - { name: c1 }
+steps:
+  - admin: { action: put_static, file: announcements/mcp-weather.yaml, target: static-tools }
+  - start: p
+  - report: { as: c1, on: p/llama, outcome: ok, ttft_ms: 250, times: 12, accepted: 12 }
+  - admin: { action: verify, target: p }
+  - admin: { action: block, target: banned }
+  - reputation: { expect: { resource p/llama: { components.reliability.samples: ">=11.9" } } }
+  - restart_broker: { graceful: true }
+  - discover: { as: c1, query: { kind: mcp_server }, expect: { ids: [static-tools/weather] } }
+  - wait_for: { as: c1, present: p/llama, within: 5s }
+  - provider_view: { as: c1, provider: p, within: 3s, expect: { fields: { verified: true } } }
+  - announce: { provider: banned, status: 403 }
+  - reputation: { expect: { resource p/llama: { components.reliability.samples: ">=11.9" } } }
+  # A kill: no snapshot is written, the evidence log is replayed.
+  - report: { as: c1, on: p/llama, outcome: ok, ttft_ms: 250, times: 3, accepted: 3 }
+  - restart_broker: { graceful: false }
+  - reputation: { expect: { resource p/llama: { components.reliability.samples: ">=14.9" } } }
+  - discover: { as: c1, query: { kind: mcp_server }, expect: { ids: [static-tools/weather] } }

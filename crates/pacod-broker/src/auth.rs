@@ -137,6 +137,7 @@ impl Caller {
             Self::Anonymous => Viewer { public_discovery: cfg.public_discovery, ..Viewer::default() },
             Self::Principal(p) => Viewer {
                 all: p.has(perm::ADMIN_READ),
+                reviewer: p.has(perm::ADMIN_READ),
                 authenticated: true,
                 organisation: p.organisation_id.clone(),
                 reputation,

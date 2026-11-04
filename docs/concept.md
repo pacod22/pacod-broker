@@ -177,7 +177,7 @@ Pages are 20 results by default and 200 at most, with a cursor.
 
 The same engine answers `GET /v1/resources` (common filters as parameters) and the MCP tool `discover_resources`.
 
-**Visibility.** `public` is seen by everyone signed in, and by anonymous callers when `BROKER_PUBLIC_DISCOVERY` is true. `platform` is seen by everyone signed in. `organisation:<id>` is seen by members of that organisation. In open mode everyone sees everything.
+**Visibility.** `public` is seen by everyone signed in, and by anonymous callers when `BROKER_PUBLIC_DISCOVERY` is true. `platform` is seen by everyone signed in. `organisation:<id>` is seen by members of that organisation. In open mode everyone sees every visibility. Providers' `min_client_reputation` still applies to a client that names itself; only broker admins pass it.
 
 ## 5. Access (pacod-id)
 

@@ -1,0 +1,13 @@
+name: catalogue-reload
+about: Static entries from a catalogue file; the file is edited and the broker told with SIGHUP; a broken file keeps the entries in place.
+broker:
+  catalog: catalogs/one.yaml
+consumers:
+  - { name: c1 }
+steps:
+  - discover: { as: c1, expect: { ids: [cat-a/weather] } }
+  - reload_catalog: { file: catalogs/two.yaml }
+  - wait_for: { as: c1, present: cat-b/weather, within: 3s }
+  - resource: { as: c1, id: cat-a/weather, expect: { fields: { summary: "Weather from catalogue entry A, renamed." } } }
+  - reload_catalog: { file: catalogs/broken.yaml }
+  - discover: { as: c1, expect: { ids: [cat-a/weather, cat-b/weather] } }

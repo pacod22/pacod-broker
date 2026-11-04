@@ -1,0 +1,23 @@
+name: approval-and-blocking
+about: New providers wait for an admin's approval; a blocked provider loses its leases and is refused until unblocked.
+broker:
+  env: { BROKER_APPROVAL: new_providers }
+providers:
+  - { name: p, from: announcements/llama.yaml }
+consumers:
+  - { name: c1 }
+steps:
+  - announce: { provider: p, status: 202 }
+  - discover: { as: c1, expect: { total: 0 } }
+  - admin: { action: approve, target: p }
+  - start: p
+  - discover: { as: c1, expect: { ids: [p/llama] } }
+  - admin: { action: block, target: p }
+  - wait_for: { as: c1, gone: p/llama, within: 2s }
+  - crash: p
+  - announce: { provider: p, status: 403 }
+  - admin: { action: unblock, target: p }
+  - start: p
+  - discover: { as: c1, expect: { ids: [p/llama] } }
+  - admin: { action: verify, target: p }
+  - provider_view: { as: c1, provider: p, expect: { fields: { verified: true } } }

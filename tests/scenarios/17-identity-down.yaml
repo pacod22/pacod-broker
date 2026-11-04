@@ -1,0 +1,35 @@
+name: identity-down
+about: pacod-id stops answering mid-run. Discovery goes on, for anonymous callers and for tokens the broker already knows; a token the broker has not seen cannot be checked and gets 503, not 401; heartbeats keep the lease. Everything recovers when pacod-id answers again.
+broker:
+  auth: oidc
+  env: { BROKER_PUBLIC_DISCOVERY: "true" }
+identity:
+  organisations: [acme, globex]
+  principals:
+    - { name: farm-svc, kind: service, organisation: acme, roles: [broker.provider@organisation] }
+    - { name: buyer-svc, kind: service, organisation: globex, roles: [broker.consumer@organisation] }
+    - { name: ops-svc, kind: service, roles: [broker.operator@platform] }
+    - { name: alice, kind: user, roles: [] }
+providers:
+  - { name: farm, from: announcements/llama.yaml, as: farm-svc }
+consumers:
+  - { name: buyer, as: buyer-svc }
+  - { name: late, as: buyer-svc, fresh_token: true }
+  - { name: alice, as: alice }
+  - { name: nobody, anonymous: true }
+steps:
+  - start: farm
+  - discover: { as: buyer, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - discover: { as: alice, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - id_down
+  - discover: { as: nobody, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - discover: { as: buyer, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - discover: { as: alice, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - discover: { as: late, query: { kind: model }, status: 503 }
+  - admin_access: { as: ops-svc, status: 503 }
+  # Longer than the lease (3 s): the provider's heartbeats need no pacod-id.
+  - wait: 4s
+  - resource: { as: nobody, id: farm/llama, expect: { fields: { key: llama } } }
+  - id_up
+  - discover: { as: late, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - admin_access: { as: ops-svc, status: 200 }

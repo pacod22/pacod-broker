@@ -1,0 +1,34 @@
+[package]
+name = "pacod-broker-suite"
+description = "The broker's scenario and load suite: YAML scenarios of providers and consumers run against the real broker binary, in open mode, with a state directory and restarts, and with pacod-id (a mock of its internal API); load runs with latency percentiles and resource use; Markdown and JSON reports."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "broker-suite"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+base64.workspace = true
+clap.workspace = true
+futures-util.workspace = true
+jiff.workspace = true
+libc = "0.2"
+pacod-broker-client.workspace = true
+pacod-broker-index.workspace = true
+pacod-broker-model.workspace = true
+pacod-id-authz.workspace = true
+pacod-id-jose = { path = "../../vendor/pacod-id/crates/pacod-id-jose" }
+parking_lot.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+serde.workspace = true
+serde_json.workspace = true
+serde-saphyr.workspace = true
+tokio = { workspace = true, features = ["process"] }
+
+[dev-dependencies]
+pacod-id-client.workspace = true

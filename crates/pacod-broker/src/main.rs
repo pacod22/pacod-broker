@@ -71,7 +71,15 @@ fn run(command: Command, env_file: Option<PathBuf>) -> anyhow::Result<()> {
                 tracing::warn!("{w}");
             }
             let workers = std::thread::available_parallelism().map_or(2, usize::from);
-            let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(workers).enable_all().build()?;
+            // Announcements, rebuilds and reputation runs go to the blocking pool, and every
+            // announcement takes the registry's lock, so threads beyond a few per core only wait.
+            // Tokio's default of 512 let a burst of announcements start hundreds of threads, each
+            // with its own allocator heap, and kept rebuilds queued behind them.
+            let runtime = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(workers)
+                .max_blocking_threads((workers * 2).max(4))
+                .enable_all()
+                .build()?;
             runtime.block_on(async {
                 let metrics = if cfg.metrics_listen.is_some() { Some(pacod_broker::metrics::install()?) } else { None };
                 let app = App::build(cfg, metrics)?;

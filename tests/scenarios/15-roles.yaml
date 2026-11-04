@@ -1,0 +1,45 @@
+name: roles
+about: Who may do what under pacod-id. A provider announces and reports about clients of its own resources; a consumer discovers and reports; a person rates; a service account without a role and an anonymous caller may do nothing; only viewers and admins see the admin API.
+broker:
+  auth: oidc
+identity:
+  organisations: [acme, globex]
+  principals:
+    - { name: farm-svc, kind: service, organisation: acme, roles: [broker.provider@organisation] }
+    - { name: rival-svc, kind: service, organisation: globex, roles: [broker.provider@organisation] }
+    - { name: buyer-svc, kind: service, organisation: globex, roles: [broker.consumer@organisation] }
+    - { name: idle-svc, kind: service, organisation: globex, roles: [] }
+    - { name: alice, kind: user, roles: [] }
+    - { name: vic, kind: user, roles: [broker.viewer@platform] }
+    - { name: ada, kind: user, roles: [broker.admin@platform] }
+providers:
+  - { name: farm, from: announcements/llama.yaml, as: farm-svc }
+  - { name: rival, from: announcements/mcp-weather.yaml, as: rival-svc }
+  - { name: by-person, from: announcements/mcp-weather.yaml, as: alice }
+  - { name: by-idle, from: announcements/mcp-weather.yaml, as: idle-svc }
+consumers:
+  - { name: buyer, as: buyer-svc }
+  - { name: alice, as: alice }
+  - { name: idle, as: idle-svc }
+  - { name: nobody, anonymous: true }
+steps:
+  - start: [farm, rival]
+  # Announcing needs the provider role.
+  - announce: { provider: by-person, status: 403 }
+  - announce: { provider: by-idle, status: 403 }
+  # Discovery needs a role, or a person's implicit one; anonymous callers need BROKER_PUBLIC_DISCOVERY.
+  - discover: { as: nobody, query: { kind: model }, status: 401 }
+  - discover: { as: idle, query: { kind: model }, status: 403 }
+  - discover: { as: buyer, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - discover: { as: alice, query: { kind: model }, expect: { ids: [farm/llama] } }
+  - report: { as: buyer, on: farm/llama, outcome: ok, ttft_ms: 280, accepted: 1 }
+  - rate: { as: alice, on: farm/llama, rating: 5, accepted: 1 }
+  # A provider reports only about clients holding a ticket for its own resources.
+  - report_client: { provider: farm, about: buyer, on: farm/llama, kind: good_standing }
+  - report_client: { provider: rival, about: buyer, on: farm/llama, kind: abuse, status: 403 }
+  # The admin API.
+  - admin_access: { as: alice, status: 403 }
+  - admin_access: { as: vic, status: 200 }
+  - admin_access: { as: ada, status: 200 }
+  - admin_access: { token: not-a-token, status: 401 }
+  - admin_access: { status: 401 }

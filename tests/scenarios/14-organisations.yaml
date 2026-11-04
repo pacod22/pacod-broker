@@ -1,0 +1,42 @@
+name: organisations
+about: Two organisations under pacod-id. Resources are public, platform-wide or for one organisation; each consumer sees exactly what it should, and anonymous callers see public entries because BROKER_PUBLIC_DISCOVERY allows it. An inventory for signed-in callers never matches an anonymous filter.
+broker:
+  auth: oidc
+  env: { BROKER_PUBLIC_DISCOVERY: "true" }
+identity:
+  organisations: [acme, globex]
+  principals:
+    - { name: acme-svc, kind: service, organisation: acme, roles: [broker.provider@organisation] }
+    - { name: globex-svc, kind: service, organisation: globex, roles: [broker.provider@organisation] }
+    - { name: alice, kind: user, organisation: acme, roles: [broker.consumer@organisation] }
+    - { name: bob, kind: user, organisation: globex, roles: [broker.consumer@organisation] }
+    - { name: carol, kind: user, roles: [] }
+providers:
+  - name: acme
+    from: announcements/three-models.yaml
+    as: acme-svc
+    set: { "resources[1].access.visibility": platform, "resources[2].access.visibility": "organisation:acme" }
+  - { name: ws, from: announcements/workstation.yaml, as: globex-svc }
+consumers:
+  - { name: alice, as: alice }
+  - { name: bob, as: bob }
+  - { name: carol, as: carol }
+  - { name: nobody, anonymous: true }
+steps:
+  - start: [acme, ws]
+  - discover: { as: alice, query: { kind: model }, expect: { ids: [acme/m0, acme/m1, acme/m2] } }
+  - discover: { as: bob, query: { kind: model }, expect: { ids: [acme/m0, acme/m1] } }
+  # A person with no role holds the implicit member role and sees what the platform sees.
+  - discover: { as: carol, query: { kind: model }, expect: { ids: [acme/m0, acme/m1] } }
+  - discover: { as: nobody, query: { kind: model }, expect: { ids: [acme/m0] } }
+  - resource: { as: bob, id: acme/m2, status: 404 }
+  - resource: { as: nobody, id: acme/m1, status: 404 }
+  - resource: { as: alice, id: acme/m2, expect: { fields: { key: m2 } } }
+  # The workstation's inventory is for signed-in callers.
+  - discover: { as: carol, query: { software: [{ name: ollama }] }, expect: { ids: [ws/embed] } }
+  - discover: { as: nobody, query: { software: [{ name: ollama }] }, expect: { total: 0 } }
+  - discover: { as: nobody, query: { kind: embedding }, expect: { ids: [ws/embed] } }
+  # Signed in is not verified: only an admin vouches for a provider.
+  - provider_view: { as: carol, provider: acme, expect: { fields: { verified: false, organisation_id: acme } } }
+  - admin: { action: verify, target: acme }
+  - provider_view: { as: carol, provider: acme, within: 2s, expect: { fields: { verified: true } } }

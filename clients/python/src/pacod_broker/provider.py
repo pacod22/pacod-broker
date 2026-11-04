@@ -149,6 +149,13 @@ class Provider(_LiveMixin):
                 if not e.not_found:
                     raise
 
+    def abandon(self) -> None:
+        """Stops the heartbeats without a goodbye, as a crash would: the lease runs out after its
+        TTL and counts against the provider's lease discipline."""
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=10)
+
     def __enter__(self) -> "Provider":
         self.start()
         return self
@@ -217,6 +224,15 @@ class AsyncProvider(_LiveMixin):
             except BrokerError as e:
                 if not e.not_found:
                     raise
+
+    async def abandon(self) -> None:
+        """Stops the heartbeats without a goodbye, as a crash would."""
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
 
     async def __aenter__(self) -> "AsyncProvider":
         await self.start()

@@ -1369,6 +1369,7 @@ dependencies = [
  "pacod-broker-logging",
  "pacod-broker-model",
  "pacod-broker-reputation",
+ "pacod-broker-suite",
  "pacod-id-authz",
  "pacod-id-client",
  "parking_lot",
@@ -1455,6 +1456,31 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "pacod-broker-suite"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "clap",
+ "futures-util",
+ "jiff",
+ "libc",
+ "pacod-broker-client",
+ "pacod-broker-index",
+ "pacod-broker-model",
+ "pacod-id-authz",
+ "pacod-id-client",
+ "pacod-id-jose",
+ "parking_lot",
+ "reqwest",
+ "serde",
+ "serde-saphyr",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

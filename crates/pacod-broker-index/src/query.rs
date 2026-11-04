@@ -241,8 +241,11 @@ impl JsonSchema for Sort {
 /// Who is asking.
 #[derive(Debug, Clone, Default)]
 pub struct Viewer {
-    /// Sees everything: open mode, or an admin.
+    /// Sees every visibility: open mode, or an admin.
     pub all: bool,
+    /// Passes providers' client thresholds too: an admin reviewing the catalogue. Open mode sees
+    /// every visibility but is still held to them, since clients there have reputations as well.
+    pub reviewer: bool,
     /// Signed in (sees `platform`).
     pub authenticated: bool,
     pub organisation: Option<String>,
@@ -254,7 +257,7 @@ pub struct Viewer {
 
 impl Viewer {
     pub fn everything() -> Self {
-        Self { all: true, authenticated: true, ..Self::default() }
+        Self { all: true, reviewer: true, authenticated: true, ..Self::default() }
     }
 
     pub fn can_see(&self, v: &Visibility) -> bool {
@@ -685,7 +688,7 @@ impl Pass<'_> {
             return None;
         }
         // Providers may keep resources from clients whose reputation is too low.
-        if !ctx.viewer.all
+        if !ctx.viewer.reviewer
             && let Some(min) = s.access.min_client_reputation
         {
             let ok = match ctx.viewer.reputation {

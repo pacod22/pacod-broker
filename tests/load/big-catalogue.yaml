@@ -1,0 +1,16 @@
+name: big-catalogue
+about: 10 000 resources from 200 providers, searched by 64 consumers at once; latency and memory at size.
+template: ../scenarios/announcements/llama.yaml
+providers: { count: 200, resources_each: 50, ttl_s: 60, kinds: [model, model, model, embedding] }
+consumers:
+  count: 64
+  queries:
+    - { weight: 3, query: { kind: model, currency: EUR, sort: "price:input", limit: 20 } }
+    - { weight: 2, query: { kind: model, capabilities: [tools], max_price: { input: 2 } } }
+    - { weight: 2, query: { q: "llama", kind: model, limit: 20 } }
+    - { weight: 1, query: { kind: embedding, regions: [eu-central], sort: ttft } }
+warmup: 5s
+duration: 60s
+# 64 consumers without pause saturate the CPUs, so latency here is queueing (Little's law). This run
+# measures throughput, memory and rebuilds at size.
+targets: { discover_per_second: 400, rss_mb: 200, rebuild_p99_ms: 1000, errors: 0 }

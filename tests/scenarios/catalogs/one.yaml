@@ -1,0 +1,10 @@
+providers:
+  - provider: { name: cat-a, summary: From the catalogue file. }
+    resources:
+      - key: weather
+        kind: mcp_server
+        name: weather-a
+        summary: Weather from catalogue entry A.
+        interfaces: [{ protocol: mcp-streamable-http, url: "https://a.example/mcp" }]
+        pricing: { free: true }
+        access: { visibility: public }

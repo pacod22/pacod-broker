@@ -1,0 +1,24 @@
+name: lease-discipline
+about: Four providers always say goodbye, four always crash. Over two rounds, reputation's lease discipline tells them apart.
+broker:
+  env: { BROKER_REPUTATION_PRIOR_WEIGHT: "2" }
+providers:
+  - { name: polite, from: announcements/mcp-weather.yaml, count: 4 }
+  - { name: rude, from: announcements/mcp-weather.yaml, count: 4 }
+consumers:
+  - { name: c1 }
+steps:
+  - start: [polite, rude]
+  - stop: polite
+  - crash: rude
+  - wait: 5s
+  - start: [polite, rude]
+  - stop: polite
+  - crash: rude
+  - wait: 5s
+  - reputation:
+      expect:
+        provider polite-1: { components.lease_discipline.score: ">0.7" }
+        provider polite-4: { components.lease_discipline.score: ">0.7" }
+        provider rude-1: { components.lease_discipline.score: "<0.3" }
+        provider rude-4: { components.lease_discipline.score: "<0.3" }

@@ -7,6 +7,7 @@ members = [
     "crates/pacod-broker-logging",
     "crates/pacod-broker-model",
     "crates/pacod-broker-reputation",
+    "crates/pacod-broker-suite",
 ]
 # pacod-id, vendored by scripts/vendor-pacod-id.sh: its crates are path dependencies, not members.
 exclude = ["vendor"]
@@ -25,6 +26,7 @@ pacod-broker-index = { path = "crates/pacod-broker-index" }
 pacod-broker-logging = { path = "crates/pacod-broker-logging" }
 pacod-broker-model = { path = "crates/pacod-broker-model" }
 pacod-broker-reputation = { path = "crates/pacod-broker-reputation" }
+pacod-broker-suite = { path = "crates/pacod-broker-suite" }
 # pacod-id (vendor/pacod-id, pinned in vendor/pacod-id/VERSION): the rules engine and the client
 # library the broker checks tokens and roles with.
 pacod-id-authz = { path = "vendor/pacod-id/crates/pacod-id-authz" }

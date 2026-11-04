@@ -1,0 +1,30 @@
+# GPU capacity by the hour, with an inventory: eight H100s, CUDA and vLLM.
+ttl_s: 3
+provider:
+  name: template
+  summary: A GPU farm.
+  inventory:
+    visibility: public
+    hardware:
+      - { id: h100, type: gpu, vendor: nvidia, model: H100-SXM, count: 8, memory_gb: 80 }
+      - { id: ram, type: memory, memory_gb: 1024 }
+    software:
+      - { id: cuda, kind: driver, name: cuda, version: "12.6" }
+      - { id: vllm, kind: serving_engine, name: vllm, version: "0.7.3" }
+resources:
+  - key: node
+    kind: compute
+    name: h100x8
+    summary: Eight H100s by the hour.
+    tags: [gpu]
+    interfaces:
+      - { protocol: http, url: "https://gpu.example/book" }
+    capabilities: { accelerator: H100-SXM, memory_gb: 80, count: 8 }
+    runs_on: { hardware: [h100, ram], software: [cuda, vllm] }
+    pricing:
+      currency: EUR
+      periods:
+        - valid_from: "2026-01-01T00:00:00Z"
+          rates: { per_gpu_hour: 2.4 }
+    availability: { regions: [eu-central], capacity: { max_concurrency: 2, unit: nodes } }
+    access: { visibility: public }
