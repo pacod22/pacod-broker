@@ -54,7 +54,7 @@ make console
 
 The console comes up on <http://127.0.0.1:5173>. `make smoke` runs the end-to-end check.
 
-With Docker, `make dev-up` builds and starts the broker and the console from the working tree, and `make up` adds the edge and monitoring of [docker-compose.standalone.yml](deploy/docker-compose.standalone.yml). In the full pacod stack the broker joins [pacod-demo](https://github.com/pacod22/pacod-demo) like the other products ([docs/integration.md](docs/integration.md)). That repository expects its siblings to be checked out as `pacod-<name>`, so clone this one as `pacod-broker`.
+With Docker, `make dev-up` builds and starts the broker and the console from the working tree, and `make up` adds the edge and monitoring of [docker-compose.standalone.yml](deploy/docker-compose.standalone.yml). In the full pacod stack the broker joins [pacod-demo](https://github.com/pacod22/pacod-demo) like the other products ([docs/integration.md](docs/integration.md)).
 
 ## Documentation
 
