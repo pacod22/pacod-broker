@@ -3391,6 +3391,13 @@
             "type": "boolean",
             "description": "Keep resources that have no price for a rate `max_price` names. Off by default."
           },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only resources priced in this currency (ISO 4217), and free ones. The broker converts\nno currency: a price sort or a maximum price compares numbers, so give the currency\nwhenever prices in several currencies may be listed."
+          },
           "at": {
             "type": [
               "string",

@@ -172,6 +172,7 @@ struct ListParams {
     limit: Option<usize>,
     cursor: Option<String>,
     include_unavailable: Option<bool>,
+    currency: Option<String>,
 }
 
 fn list(v: &Option<String>) -> Vec<String> {
@@ -200,6 +201,7 @@ async fn list_resources(
         limit: p.limit,
         cursor: p.cursor.clone(),
         include_unavailable: p.include_unavailable.unwrap_or(false),
+        currency: p.currency.clone(),
         ..Query::default()
     };
     app.note_client(&c);

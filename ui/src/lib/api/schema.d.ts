@@ -1251,6 +1251,12 @@ export interface components {
             /** @description Keep resources that have no price for a rate `max_price` names. Off by default. */
             include_unpriced?: boolean;
             /**
+             * @description Only resources priced in this currency (ISO 4217), and free ones. The broker converts
+             *     no currency: a price sort or a maximum price compares numbers, so give the currency
+             *     whenever prices in several currencies may be listed.
+             */
+            currency?: string | null;
+            /**
              * Format: date-time
              * @description The instant prices and availability are evaluated at; now by default.
              */

@@ -245,3 +245,12 @@ fn bad_queries_are_refused_with_a_reason() {
     }
     assert!(serde_json::from_value::<Query>(json!({"sort": "price:tokens"})).is_err());
 }
+
+#[test]
+fn the_currency_filter_keeps_comparisons_honest() {
+    let idx = catalogue();
+    let all = Viewer::everything();
+    // Every priced resource of the fixture is in EUR; the MCP server is free.
+    assert_eq!(run(&idx, json!({"currency": "EUR"}), &all).unwrap().total, 3);
+    assert_eq!(names(&run(&idx, json!({"currency": "USD"}), &all).unwrap()), ["tools/weather"]);
+}

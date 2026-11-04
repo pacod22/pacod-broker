@@ -9,13 +9,15 @@ set -euo pipefail
 BROKER="${BROKER:-http://127.0.0.1:8060}"
 if [ -n "${TOKEN:-}" ]; then WHO=(-H "Authorization: Bearer $TOKEN"); else WHO=(-H "X-Broker-Client: ${CLIENT:-demo-agent}"); fi
 
-# The cheapest model with tools and at least 100k context, as priced at 23:00 UTC tonight.
+# The cheapest model priced in euros, with tools and at least 100k context, as priced at
+# 23:00 UTC tonight. The broker converts no currency, so a price sort names one.
 tonight="$(date -u +%Y-%m-%d)T23:00:00Z"
 result=$(curl -fsS -X POST "$BROKER/v1/discover" "${WHO[@]}" -H 'content-type: application/json' -d "{
   \"kind\": \"model\",
   \"capabilities\": [\"tools\"],
   \"model\": {\"min_context_window\": 100000},
   \"at\": \"$tonight\",
+  \"currency\": \"EUR\",
   \"sort\": \"price:input\",
   \"limit\": 3
 }")

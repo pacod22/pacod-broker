@@ -70,6 +70,11 @@ pub struct Query {
     /// Keep resources that have no price for a rate `max_price` names. Off by default.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub include_unpriced: bool,
+    /// Only resources priced in this currency (ISO 4217), and free ones. The broker converts
+    /// no currency: a price sort or a maximum price compares numbers, so give the currency
+    /// whenever prices in several currencies may be listed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currency: Option<String>,
     /// The instant prices and availability are evaluated at; now by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<Timestamp>,
@@ -770,6 +775,12 @@ impl Pass<'_> {
         }
 
         // Prices.
+        if let Some(cur) = &q.currency {
+            match &s.pricing {
+                Some(p) if p.free || p.currency.eq_ignore_ascii_case(cur) => {}
+                _ => return None,
+            }
+        }
         let price_summary = match (q.during, &s.pricing) {
             (Some(span), Some(p)) => Some(p.during(span)),
             _ => None,
