@@ -37,6 +37,7 @@ pub fn router(app: Shared) -> Router {
         .route("/config", get(config))
         .route("/resources", get(resources))
         .route("/resources/{id}", get(resource))
+        .route("/resources/{id}/timeline", get(timeline))
         .route("/providers", get(providers))
         .route("/providers/{id}", get(provider))
         .route("/providers/{id}/block", post(block))
@@ -241,6 +242,44 @@ async fn resource(
         serde_json::to_value(e.record.lease_id.as_deref().and_then(|l| app.registry.lease_of(l))).unwrap_or_default();
     v["reputation_evidence"] = serde_json::to_value(app.reputation.subject(Side::Resource, &id)).unwrap_or_default();
     Ok(Json(v))
+}
+
+#[derive(Deserialize)]
+struct TimelineParams {
+    from: Option<Timestamp>,
+    to: Option<Timestamp>,
+}
+
+/// Prices and availability of one resource over a span: the next seven days by default.
+#[derive(Serialize, JsonSchema)]
+pub struct Timeline {
+    pub from: Timestamp,
+    pub to: Timestamp,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prices: Option<pacod_broker_model::PriceSummary>,
+    pub availability: pacod_broker_model::AvailabilitySummary,
+}
+
+async fn timeline(
+    State(app): State<Shared>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    QueryParams(p): QueryParams<TimelineParams>,
+) -> Result<Json<Timeline>, Problem> {
+    admin(&app, &headers, perm::ADMIN_READ).await?;
+    let idx = app.registry.index();
+    let e = idx.get(&id).ok_or_else(|| Problem::not_found(format!("no resource {id}")))?;
+    let now = Timestamp::now();
+    let from = p.from.unwrap_or(now);
+    let to = p.to.unwrap_or_else(|| pacod_broker_model::schedule::days_after(from, 7));
+    let span = pacod_broker_model::schedule::Span::new(from, to).map_err(|e| Problem::bad_request(e))?;
+    let s = &e.record.spec;
+    Ok(Json(Timeline {
+        from,
+        to,
+        prices: s.pricing.as_ref().map(|pr| pr.during(span)),
+        availability: s.availability.during(span, Some(e.live.model(now)), None),
+    }))
 }
 
 #[derive(Serialize, JsonSchema)]

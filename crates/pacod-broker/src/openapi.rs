@@ -8,7 +8,7 @@ use schemars::{JsonSchema, SchemaGenerator};
 use serde_json::{Map, Value, json};
 
 use crate::api::Problem;
-use crate::api::admin::{IncidentBody, ProviderRow, RepRow, ReportRow, Session, Status, VerifyBody};
+use crate::api::admin::{IncidentBody, ProviderRow, RepRow, ReportRow, Session, Status, Timeline, VerifyBody};
 use crate::api::public::{Accepted, ClientReport, FeedbackReport, UsageBatch, VerifyTicket};
 use crate::api::views::{DiscoverResponse, ProviderView, ResourceView};
 use crate::registry::{Announced, Announcement, Heartbeat, LeaseInfo, Pending, StaticProvider};
@@ -233,6 +233,17 @@ pub fn document() -> Value {
         200,
         Some(any.clone()),
         &[],
+    );
+    let tl = d.schema::<Timeline>();
+    d.op(
+        "get",
+        "/api/v1/resources/{id}/timeline",
+        "admin",
+        "Prices and availability over a span",
+        None,
+        200,
+        Some(tl),
+        &[("from", "string", "RFC 3339; now by default"), ("to", "string", "RFC 3339; seven days later by default")],
     );
     let pr = d.schema::<Vec<ProviderRow>>();
     d.op("get", "/api/v1/providers", "admin", "Every provider", None, 200, Some(pr), &[]);

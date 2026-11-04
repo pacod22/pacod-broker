@@ -930,6 +930,65 @@
         ]
       }
     },
+    "/api/v1/resources/{id}/timeline": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Prices and availability over a span",
+        "operationId": "get_api_v1_resources_id_timeline",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Timeline"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "RFC 3339; now by default",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "RFC 3339; seven days later by default",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/v1/providers": {
       "get": {
         "tags": [
@@ -4976,6 +5035,38 @@
           "auth",
           "state_dir"
         ]
+      },
+      "Timeline": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "prices": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriceSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "availability": {
+            "$ref": "#/components/schemas/AvailabilitySummary"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "availability"
+        ],
+        "description": "Prices and availability of one resource over a span: the next seven days by default."
       },
       "ProviderRow": {
         "type": "object",

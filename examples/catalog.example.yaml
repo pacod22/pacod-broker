@@ -1,0 +1,168 @@
+# An example catalogue (BROKER_CATALOG_FILE): static providers and resources, read at start and
+# on SIGHUP. Static entries never expire; providers that run their own service announce under a
+# lease instead (examples/provider.sh). The fields are those of an announcement
+# (`pacod-broker schema` prints its JSON Schema).
+providers:
+  - provider:
+      name: sofia-gpu
+      title: Sofia GPU Cloud
+      summary: H100 and L40S capacity in Sofia, served models and GPU hours by the hour.
+      description: |
+        ## Who we are
+        A small GPU cloud in **Sofia, Bulgaria**, on renewable power. Data stays in the EU.
+
+        ## What we offer
+        - Open-weight models behind an OpenAI-compatible endpoint
+        - Whole H100 nodes by the hour, booked in slots
+
+        See [our terms](https://sofia-gpu.example/terms) before you book.
+      website: https://sofia-gpu.example
+      contact: ops@sofia-gpu.example
+      locations: [bg, eu]
+      certifications:
+        - { name: ISO 27001, issuer: Example Cert Body, valid_to: "2027-06-30T00:00:00Z" }
+      inventory:
+        visibility: public
+        hardware:
+          - { id: h100, type: gpu, vendor: nvidia, model: H100-SXM, count: 16, memory_gb: 80, interconnect: nvlink, region: bg }
+          - { id: l40s, type: gpu, vendor: nvidia, model: L40S, count: 8, memory_gb: 48, region: bg }
+          - { id: ram, type: memory, memory_gb: 2048 }
+        software:
+          - { id: cuda, kind: driver, name: cuda, version: "12.6" }
+          - { id: vllm, kind: serving_engine, name: vllm, version: "0.7.3" }
+          - { id: torch, kind: framework, name: pytorch, version: "2.6.0" }
+    resources:
+      - key: llama-70b
+        kind: model
+        name: llama-3.3-70b-instruct
+        title: Llama 3.3 70B Instruct (fp8)
+        summary: Llama 3.3 70B Instruct, fp8, on H100s with vLLM; cheaper at night.
+        description: |
+          An **OpenAI-compatible** chat endpoint. Off-peak (22:00–06:00 Sofia time) input is
+          less than half price.
+        examples:
+          - title: curl
+            language: bash
+            code: |
+              curl https://api.sofia-gpu.example/v1/chat/completions \
+                -H "Authorization: Bearer $KEY" \
+                -d '{"model": "llama-3.3-70b-instruct", "messages": [{"role": "user", "content": "Hi"}]}'
+        tags: [llm, open-weights]
+        interfaces:
+          - { protocol: openai-chat, url: "https://api.sofia-gpu.example/v1", auth: { scheme: bearer, obtain_url: "https://sofia-gpu.example/keys" } }
+        model: { family: llama, context_window: 131072, max_output_tokens: 8192, quantisation: fp8, parameters_b: 70, modalities: { input: [text], output: [text] } }
+        capabilities: { tools: true, streaming: true, structured_output: true }
+        runs_on: { hardware: [h100], software: [cuda, vllm] }
+        pricing:
+          currency: EUR
+          timezone: Europe/Sofia
+          periods:
+            - valid_from: "2026-01-01T00:00:00Z"
+              rates: { input: 0.60, output: 0.90 }
+              windows:
+                - { name: off-peak, from_time: "22:00", to_time: "06:00", rates: { input: 0.25, output: 0.50 } }
+              tiers:
+                - { above: 100000000, unit: input_tokens, rates: { input: 0.45 } }
+        availability:
+          regions: [bg]
+          capacity: { max_concurrency: 64 }
+          latency: { ttft_ms: 320, ms_per_token: 18 }
+          schedule:
+            timezone: Europe/Sofia
+            maintenance:
+              - { from: "2026-11-08T01:00:00Z", to: "2026-11-08T03:00:00Z", reason: Driver upgrade }
+        policy: { data_retention: none, training_use: false, residency: [eu], classification: confidential }
+        access: { visibility: public }
+      - key: h100-node
+        kind: compute
+        name: h100x8-node
+        title: Whole H100 node (8 × H100 80 GB)
+        summary: A whole node with eight H100s, by the hour, in bookable slots.
+        tags: [gpu, training]
+        interfaces:
+          - { protocol: http, url: "https://sofia-gpu.example/book", auth: { scheme: oauth2 } }
+        capabilities: { accelerator: H100-SXM, memory_gb: 80, count: 8 }
+        runs_on: { hardware: [h100, ram], software: [cuda, torch] }
+        pricing:
+          currency: EUR
+          periods:
+            - valid_from: "2026-01-01T00:00:00Z"
+              rates: { per_gpu_hour: 2.40 }
+              commitments:
+                - { min_hours: 720, rates: { per_gpu_hour: 1.70 } }
+        availability:
+          capacity: { max_concurrency: 2, unit: nodes }
+          schedule:
+            timezone: UTC
+            rules:
+              - { weekdays: [mon, tue, wed, thu, fri], from_time: "18:00", to_time: "08:00", capacity: 2 }
+              - { weekdays: [sat, sun], from_time: "00:00", to_time: "24:00", capacity: 2 }
+        access: { visibility: platform }
+
+  - provider:
+      name: tools-hub
+      title: Tools Hub
+      summary: Hosted MCP servers for everyday agent tools.
+      website: https://tools-hub.example
+    resources:
+      - key: weather
+        kind: mcp_server
+        name: weather
+        title: Weather (MCP)
+        summary: Forecasts and observations for any city, as MCP tools.
+        interfaces:
+          - { protocol: mcp-streamable-http, url: "https://tools-hub.example/weather/mcp", auth: { scheme: none } }
+        capabilities:
+          mcp_protocol_version: "2025-06-18"
+          mcp_tools:
+            - { name: forecast, description: Forecast for a city and a number of days }
+            - { name: current, description: Current observations for a city }
+        pricing: { free: true }
+        availability: { latency: { ttft_ms: 120 } }
+        access: { visibility: public }
+      - key: bg-law
+        kind: mcp_server
+        name: bg-legislation
+        title: Bulgarian legislation search (MCP)
+        summary: Search the Bulgarian laws in force; answers cite the provision.
+        tags: [legal, bg]
+        interfaces:
+          - { protocol: mcp-streamable-http, url: "https://tools-hub.example/bg-law/mcp", auth: { scheme: pacod_id } }
+        capabilities:
+          mcp_tools:
+            - { name: search, description: Full-text and semantic search over laws in force }
+            - { name: provision, description: The text of one provision }
+        pricing:
+          currency: EUR
+          periods:
+            - valid_from: "2026-01-01T00:00:00Z"
+              rates: { per_call: 0.002 }
+              overrides:
+                - { from: "2026-11-01T00:00:00Z", to: "2026-12-01T00:00:00Z", rates: { per_call: 0.0 }, reason: Free in November }
+        policy: { residency: [eu], training_use: false }
+        access: { visibility: public }
+
+  - provider:
+      name: euro-llm
+      title: EuroLLM Gateway
+      summary: Frontier models through an EU-hosted gateway.
+    resources:
+      - key: claude
+        kind: model
+        name: claude-sonnet
+        title: Claude Sonnet via an EU gateway
+        summary: Anthropic Messages API through a pacod-gw in Frankfurt.
+        tags: [llm]
+        interfaces:
+          - { protocol: anthropic-messages, url: "https://gw.euro-llm.example", auth: { scheme: api_key } }
+          - { protocol: openai-chat, url: "https://gw.euro-llm.example/v1", auth: { scheme: api_key } }
+        model: { family: claude, context_window: 200000, max_output_tokens: 64000, modalities: { input: [text, image], output: [text] } }
+        capabilities: { tools: true, vision: true, reasoning: true, streaming: true, prompt_cache: true, structured_output: true }
+        pricing:
+          currency: USD
+          periods:
+            - valid_from: "2026-01-01T00:00:00Z"
+              rates: { input: 3.0, output: 15.0, cache_read: 0.3, cache_write: 3.75 }
+        availability: { regions: [eu-central], latency: { ttft_ms: 650 } }
+        policy: { data_retention: 30d, training_use: false, residency: [eu] }
+        access: { visibility: public, min_client_reputation: 0.4 }
