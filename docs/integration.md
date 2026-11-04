@@ -24,15 +24,16 @@ pacod-demo loads every product from sibling directories named `pacod-<product>`,
 
 ## 2. pacod-gw: the gateway as provider, source and witness
 
-The concept is [pacod-gw.md](pacod-gw.md): the roles the gateway can take towards the broker, scenarios, mappings and phases. Its first phase changes nothing in gw's core:
+The concept is [pacod-gw.md](pacod-gw.md): the roles the gateway can take towards the broker, scenarios, mappings and phases. All three phases are built (its section 11); the first changes nothing in gw's core:
 
 | What | How |
 |---|---|
-| A bridge service | `crates/pacod-gw-broker` and service `gw-broker` in pacod-gw, with `pacod-broker-client` vendored. A pacod-id service account holds `broker.provider` in each organisation that offers, and `broker.consumer`. |
-| Offerings | The bridge announces each organisation's chosen templates and models (interface `pacod-gw` and the dialects), with prices from gw's repository and live state from its breakers. |
+| A bridge service | `crates/pacod-gw-broker` and service `gw-broker` (compose profile `broker`) in pacod-gw, with `pacod-broker-model`, `-index` and `-client` vendored (`scripts/vendor-pacod-broker.sh`). Each offering organisation has a pacod-id token holding `broker.provider` there; the bridge's own token holds `broker.consumer` and `broker.witness`. |
+| Offerings | The bridge announces each organisation's offered templates (its file, or a template's `broker_offer`), with interface `pacod-gw` and the dialects, prices from gw's repository and live state from its breakers. |
 | Prices | The broker serves a feed in gw's `pacod` format; gw's price tracker reads it as any feed. |
-| Evidence | The bridge holds its own tickets for upstreams that are broker resources, and reports sampled usage from gw's analytics. A usage report counts only from the ticket's own client, so the gateway cannot report on its callers' tickets until the broker has a delegated witness (phase 2). |
-| A gw role | `broker_bridge` in `authz/gw.yaml`: reading models, prices, templates, health and analytics. |
+| Evidence | The bridge holds its own tickets for upstreams that are broker resources, and reports sampled usage from gw's analytics. From phase 2 it also reports calls to offerings on the consumers' own tickets, as a delegated witness (`reports.witness`). |
+| A gw role | Phase 1 reads with a platform `viewer`; `broker_bridge` in `authz/gw.yaml` (phase 2) also reads the calls that quoted a ticket. |
+| The core (phases 2 and 3) | `PGW_BROKER_URL` and `PGW_BROKER_TOKEN` (`broker.consumer`): proposals from the broker, pools by discovery, leased upstreams, `/mcp`, the console's Broker page. |
 
 ## 3. pacod-id
 

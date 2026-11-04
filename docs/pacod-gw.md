@@ -2,7 +2,7 @@
 
 pacod-gw is the gateway every LLM call of the platform goes through. pacod-broker is the catalogue of what can be called, at what price, when, and how well it serves. This page is the concept for using the two together: the roles the gateway can take towards the broker, how each would work, scenarios that combine them, and a phased recommendation.
 
-**Status.** A concept. Nothing here is built yet. Names from pacod-gw refer to its code at the time of writing (`crates/pacod-gw-core`, `crates/pacod-gw-events`, `crates/pacod-gw-analytics`, `ui/`).
+**Status.** Built, all three phases: pacod-gw's branch `broker-integration` and pacod-demo's branch of the same name, with this repository's price feed and delegated witness. Section 11 says what was built and where it differs from the concept; the sections before it are the concept as written. Names from pacod-gw refer to its code at the time of writing (`crates/pacod-gw-core`, `crates/pacod-gw-events`, `crates/pacod-gw-analytics`, `ui/`).
 
 **Origin.** pacod-gw's feature catalogue §12 (BRK-01 to BRK-13) asks for a capability broker. Its design assessment §4.10 calls the broker "elegant, value unproven", because "apps pin models". The concept therefore starts where the value is clear and the risk is low, and grows only as demand shows.
 
@@ -194,7 +194,7 @@ Interfaces: `pacod-gw` (the native API), plus `openai-chat`, `openai-responses`,
 
 The broker refuses a price that would change the past (`check_not_retroactive`). The bridge therefore announces a gw price change from its `effective_from` on, never backdated.
 
-Broker to gw (R2a): the `pacod` feed carries a period's base rates, and each window's rates as a variant named after it. The hours of a window are not in the feed format; they are set in gw's `windows` once. A broker window in a zone other than UTC becomes UTC hours there, so it shifts by an hour across a change of daylight saving time until it is set again. Overrides (one-off spot prices) and commitments do not pass through the feed.
+Broker to gw (R2a): the `pacod` feed (`GET /v1/feeds/prices`) carries a period's base rates, each window's rates as a variant named after it, and the windows themselves as UTC weekdays and hours (`FeedRates.windows`), worked out for the current week. A window in another zone therefore follows a change of daylight saving time at the next read of the feed. Tiers pass by input tokens only. Overrides (one-off spot prices), commitments and compute rates do not pass through the feed.
 
 ### 5.3 Life cycle and live state
 
@@ -299,7 +299,7 @@ Role: R6.
 |---|---|---|
 | **pacod-broker** | A price feed in gw's `pacod` format (a read endpoint: `make openapi`, the three clients, a scenario). A scenario with a gateway as provider and witness. | `reports.witness` and its scenario |
 | **pacod-gw** | `crates/pacod-gw-broker` (vendored `pacod-broker-client`), the `gw-broker` compose service, the `broker_bridge` role (`make authz`), console `BROKER_URL` | The proposal source, `broker_resource_id`, `UsageEvent` fields; then pools by discovery and leased upstreams |
-| **pacod-demo** | Service `gw-broker` on `pacod-net` and `pacod-admin-net`; a pacod-id client `pacod-gw-broker` with its roles; secrets in `init-secrets.sh` | — |
+| **pacod-demo** | Service `gw-broker` on `pacod-net` and `pacod-admin-net`; service accounts for the bridge and the core, and one per organisation, made by the bootstrap; secrets in `init-secrets.sh` | — |
 | **pacod-id** | None | — |
 
 ## 10. Open questions
@@ -309,3 +309,45 @@ Role: R6.
 3. **Opt in per organisation or per offering?** The concept recommends per organisation, with a list of offerings.
 4. **Which prices win** when a provider's own feed and the broker's disagree? The price tracker's source order decides; the concept recommends the provider's own source first.
 5. **May R5 ever admit hardware outside the gateway's organisation?** The concept says no.
+
+## 11. What was built
+
+All three phases, on the branches `broker-integration` of pacod-gw and pacod-demo. Phase 0 is the bridge's metrics (`gwb_*`, scraped as job `pacod-gw-broker`): offerings, announcements, reports sent and counted, tickets seen.
+
+### 11.1 Where the build differs from the concept
+
+| Concept | Built | Why |
+|---|---|---|
+| Offerings marked by template tags (`broker.offer=…`) | The bridge's file (`GWB_CONFIG_FILE`: organisations, their broker tokens, offerings) and, from phase 3, a template's own `broker_offer { visibility, summary }`, the console's switch "Offer on pacod-broker" | Tags are declared per workspace and added to every call: the wrong place for a catalogue setting. |
+| One pacod-id service account for the bridge, `broker.provider` in each organisation | One token per offering organisation, holding `broker.provider` there; the bridge's own token holds `broker.consumer` and `broker.witness` | Each organisation announces as itself, so the same-organisation rule keeps its own members' calls out of its reputation. Provider ids keep today's derivation. |
+| A new gw role for phase 1 | Phase 1 reads with a platform `viewer`; phase 2 adds `broker_bridge` (`org.read`, `workspace.read`, `broker.read`), which alone reads the calls that quoted a ticket (`/broker/calls`) | A viewer already reads models, prices, templates, routing and requests. |
+| Templates or models offered | Templates only, the active ones; the first pool model gives `kind` and prices | The concept's recommendation (section 10, question 1). |
+| Interfaces `pacod-gw`, `openai-chat`, `openai-responses`, `anthropic-messages`, `gemini` | `pacod-gw`, `openai-chat`, `anthropic-messages`, `gemini`; `model.upstream_id` is `@<template>` | The names a caller sends to reach a template. |
+| Deprecated models announced with their sunset | Not built: an offering follows its template's state | Templates have no sunset. |
+| Several bridges sharing leases through gw's job lease | Not built: run one bridge | One bridge per installation is enough for the demand phase 0 measures. |
+| R5 as an organisation setting `broker_leases { template, query }` | `pool_from.own_leases` on the template | One place for a template's members, whether found or leased. |
+| A first-byte time as `ttft_ms` | `Timing.first_token_ms`, the first chunk with content per dialect; the bridge reports it, and the first byte only where it is missing | Phase 2 records the first token, as planned. |
+| Console `BROKER_URL` as a link | A Broker page under Platform, from the core's `/broker/status` and `/broker/resources/{id}` | Users' tokens carry gw's audience; the core asks the broker with its own token. |
+| Helm | Not done | No Helm in the environment the work was done in; compose only. |
+
+### 11.2 Where each role lives
+
+| Role | pacod-gw | Settings |
+|---|---|---|
+| R1 offerings, live state | `crates/pacod-gw-broker` (`offer.rs`, `bridge.rs`): announcements rebuilt on `config` events and every `GWB_REFRESH_SECONDS`, updated under the same lease (`Running::update`) | `GWB_*` (`config.rs`) |
+| R1b front door | `x-gw-broker-ticket` on a call becomes `UsageEvent.broker_ticket` (never forwarded upstream, never in the audit log); the bridge reads `/broker/calls`, checks each ticket as the offering's provider, reports `good_standing` once a day per client and `abuse` past 20 refused calls a day (`front_door.rs`) | role `broker_bridge` |
+| R2a prices | the broker's `GET /v1/feeds/prices` as a `pacod` feed in gw's price tracker | a price job's URL |
+| R2b proposals | the core's discovery run asks the broker for `model` and `embedding` resources at its providers' hosts; proposals carry `source = broker`; accepting one sets `Model.broker_resource_id` | `PGW_BROKER_URL`, `PGW_BROKER_TOKEN`, `PGW_BROKER_POOL_SECONDS` |
+| R3a evidence | the bridge reports sampled calls to linked upstreams under its own ticket (at most `GWB_SAMPLE_PER_HOUR` per resource and hour) | links in the bridge's file, or `broker_resource_id` |
+| R3b witness | the bridge reports offering calls on the consumers' own tickets as `reports.witness` | the bridge's token holds `broker.witness` |
+| R4 pools | `TemplateSpec.pool_from { query, mode: propose or follow, max, own_leases }`; a `broker_pool` object per template holds the resolved and the proposed members; members come after the template's own, capped at 16 | the template editor's "pacod-broker" fieldset |
+| R5 leased upstreams | with `own_leases`, the organisation's own leased `openai-chat` resources become providers `leased-<12 hex>` and models `leased-…/<upstream>`, granted to it; a lease that ends disables only that template's members | the egress policy still applies |
+| R6 MCP | the data plane's `POST /mcp` forwards `initialize`, `tools/list` and `tools/call` for `discover_resources` and `describe_resource` to the broker, with a gw key | `PGW_BROKER_*` |
+| R7 consoles | the Broker page, the discovery queue's "Found by" column, the template editor | — |
+
+### 11.3 Not verified where it was built
+
+- gw-analytics against ClickHouse: migration `0014_broker.sql` (the ticket column and `first_token_ms`) and the reports' `broker_ticket` filter are covered by unit tests only.
+- The full demo stack: its files pass `docker compose config -q`, `sh -n` and parsing, but the stack did not run (no Docker daemon).
+- Everything else ran: the bridge against a real broker, the core's integration tests against PostgreSQL (proposals, pools in both modes, a leased node serving and then disabled, MCP), and the console against a live core and broker.
+
