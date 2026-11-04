@@ -272,7 +272,7 @@ async fn timeline(
     let now = Timestamp::now();
     let from = p.from.unwrap_or(now);
     let to = p.to.unwrap_or_else(|| pacod_broker_model::schedule::days_after(from, 7));
-    let span = pacod_broker_model::schedule::Span::new(from, to).map_err(|e| Problem::bad_request(e))?;
+    let span = pacod_broker_model::schedule::Span::new(from, to).map_err(Problem::bad_request)?;
     let s = &e.record.spec;
     Ok(Json(Timeline {
         from,

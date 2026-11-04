@@ -1,0 +1,7 @@
+# The edge of the broker's own stack: global options, then the sites of the fragments.
+{
+	admin off
+	auto_https off
+}
+
+import /etc/caddy/sites/*.caddy

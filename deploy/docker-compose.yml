@@ -1,0 +1,112 @@
+# pacod-broker on the shared network pacod-net: the app file.
+#
+#   pacod-broker    the broker: public API (8060), admin API (8061, pacod-admin-net only),
+#                   metrics (9160)
+#   broker-console  the console that docks to it (3000)
+#
+# The broker needs nothing else: no database, no other service. The console is optional; the
+# shared components (pacod-caddy, pacod-id, pacod-prometheus, pacod-grafana) come from
+# docker-compose.standalone.yml in the broker's own stack, or from the full stack (pacod-demo),
+# which loads this file and provides them once (docs/integration.md). The naming convention is
+# pacod-demo/docs/NETWORK.md.
+#
+#   make network
+#   docker compose -f deploy/docker-compose.yml up -d --wait
+#
+# Settings come from deploy/.env (copy deploy/.env.example; git-ignored). With none, the broker
+# runs in open mode and keeps nothing between restarts but its state volume.
+#
+# What is reachable from where:
+#   - Both services are on pacod-net. Nothing here publishes a port: pacod-caddy serves the
+#     public API and the console (platform/caddy/broker.caddy); docker-compose.dev.yml
+#     publishes them for development.
+#   - The admin API is on pacod-admin-net only (internal, no route out), bound to the alias
+#     pacod-broker-admin that the broker has there alone; the console joins pacod-admin-net
+#     and calls http://pacod-broker-admin:8061.
+#   - With BROKER_AUTH=oidc the broker reaches pacod-id's internal listener on pacod-admin-net
+#     at http://pacod-id-internal:8071.
+
+name: pacod-broker
+
+# Every service rotates its log (pacod-demo/docs/LOGGING.md) and names itself with SERVICE_NAME.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-locked-down: &locked-down
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+services:
+  pacod-broker:
+    <<: *locked-down
+    image: ${BROKER_REGISTRY:-}pacod-broker:${BROKER_VERSION:-0.1.0}
+    container_name: pacod-broker
+    command: ["serve"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SERVICE_NAME: pacod-broker
+      BROKER_LISTEN: 0.0.0.0:8060
+      BROKER_ADMIN_LISTEN: pacod-broker-admin:8061
+      BROKER_METRICS_LISTEN: 0.0.0.0:9160
+      BROKER_STATE_DIR: /var/lib/pacod-broker
+      BROKER_LOG_FORMAT: ${BROKER_LOG_FORMAT:-json}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - broker-state:/var/lib/pacod-broker
+    networks:
+      pacod-net:
+      pacod-admin-net:
+        aliases: [pacod-broker-admin]
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    logging: *logging
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 256M }
+
+  broker-console:
+    <<: *locked-down
+    image: ${BROKER_REGISTRY:-}pacod-broker-console:${BROKER_VERSION:-0.1.0}
+    container_name: broker-console
+    environment:
+      SERVICE_NAME: broker-console
+      BROKER_CONSOLE_BROKERS: ${BROKER_CONSOLE_BROKERS:-default=http://pacod-broker-admin:8061}
+      BROKER_UI_AUTH: ${BROKER_UI_AUTH:-open}
+      BROKER_UI_ADMIN_TOKEN: ${BROKER_ADMIN_TOKEN:-}
+      BROKER_ID_ISSUER: ${BROKER_ID_ISSUER:-}
+      BROKER_ID_INTERNAL_URL: ${BROKER_ID_INTERNAL_URL:-http://pacod-id-internal:8071}
+      BROKER_UI_CLIENT_ID: ${BROKER_UI_CLIENT_ID:-pacod-broker-ui}
+      BROKER_UI_CLIENT_SECRET: ${BROKER_UI_CLIENT_SECRET:-}
+      BROKER_UI_SESSION_SECRET: ${BROKER_UI_SESSION_SECRET:-}
+      BROKER_CONSOLE_URL: ${BROKER_CONSOLE_URL:-}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-http://pacod-prometheus:9090}
+      GRAFANA_URL: ${GRAFANA_URL:-}
+      # adapter-node 6 has no ORIGIN setting: it takes the scheme and the client from Caddy.
+      PROTOCOL_HEADER: x-forwarded-proto
+      ADDRESS_HEADER: x-forwarded-for
+    tmpfs: [/tmp]
+    depends_on:
+      pacod-broker: { condition: service_healthy }
+    networks: [pacod-net, pacod-admin-net]
+    logging: *logging
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M }
+
+# Both are shared by every pacod stack on this host; "make network" creates them.
+networks:
+  pacod-net:
+    external: true
+  # Internal (no route out): the listeners that only servers reach, and their clients.
+  pacod-admin-net:
+    external: true
+
+volumes:
+  broker-state:

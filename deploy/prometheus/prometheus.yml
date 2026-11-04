@@ -1,0 +1,9 @@
+# The broker's own Prometheus (docker-compose.standalone.yml). In the full stack pacod-demo's
+# Prometheus loads platform/prometheus/broker.yml and the rules the same way.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+rule_files:
+  - /etc/prometheus/rules/broker/*.yml
+scrape_config_files:
+  - /etc/prometheus/scrape.d/*.yml

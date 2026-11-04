@@ -1,0 +1,10 @@
+# pacod-broker's scrape job for the shared Prometheus (pacod-prometheus), loaded through its
+# scrape_config_files glob (pacod-demo's prometheus.yml). The target is the service name on
+# pacod-net. The job name is what the dashboard, the alerts and the console's Metrics page
+# select on; keep it.
+scrape_configs:
+  - job_name: pacod-broker
+    static_configs:
+      - targets: ["pacod-broker:9160"]
+        labels:
+          instance: broker

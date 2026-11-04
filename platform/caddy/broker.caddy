@@ -1,0 +1,54 @@
+# pacod-broker's sites behind the shared edge (pacod-caddy): the broker's public API and the
+# console. Site blocks only, no global options: imported by a Caddyfile that holds them
+# (pacod-demo's for the full stack) with `import /etc/caddy/sites/*.caddy`. Snippet names carry
+# the prefix broker_.
+#
+#   BROKER_API_SITE           the public API's address (discovery, announcements, MCP)
+#   BROKER_SITE               the console's address
+#   BROKER_CADDY_LOG_FORMAT   the access log's format: console (text, the default) or json
+#
+# The admin API (8061) and the metrics (9160) are never published through the edge: the
+# console reaches the admin API on pacod-admin-net, Prometheus scrapes on pacod-net.
+
+(broker_access_log) {
+	log {
+		output stdout
+		format filter {
+			wrap {$BROKER_CADDY_LOG_FORMAT:console}
+			fields {
+				# What must never be logged (pacod-demo/docs/LOGGING.md): sign-in codes and
+				# state, one-time tokens, hints, next, keys; the Referer and the redirect target
+				# that carry the same.
+				request>uri query {
+					delete token
+					delete code
+					delete state
+					delete id_token_hint
+					delete login_hint
+					delete flow
+					delete next
+					delete key
+				}
+				request>headers>Referer delete
+				request>headers>X-Api-Key delete
+				request>headers>X-Goog-Api-Key delete
+				resp_headers>Location delete
+			}
+		}
+	}
+}
+
+{$BROKER_API_SITE:http://broker-api.localhost} {
+	reverse_proxy pacod-broker:8060 {
+		# The watch stream and MCP: write every chunk as it arrives.
+		flush_interval -1
+		health_uri /readyz
+		health_interval 5s
+	}
+	import broker_access_log
+}
+
+{$BROKER_SITE:http://broker.localhost} {
+	reverse_proxy broker-console:3000
+	import broker_access_log
+}

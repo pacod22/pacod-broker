@@ -1,0 +1,58 @@
+# The broker's own copies of the shared components, for running it without the full stack
+# (pacod-demo provides them once there, under the same names): an edge and the monitoring.
+# pacod-id is not included: run the full stack for sign-in, or the broker in open mode.
+#
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.standalone.yml up -d --wait
+#
+# Caddy serves the public API on :8060 and the console on :13100 of this machine; Prometheus
+# and Grafana are on 127.0.0.1:19090 and 127.0.0.1:13001.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  pacod-caddy:
+    image: caddy:2.11.6-alpine
+    container_name: pacod-caddy
+    restart: unless-stopped
+    environment:
+      BROKER_API_SITE: "http://:8060"
+      BROKER_SITE: "http://:13100"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../platform/caddy/broker.caddy:/etc/caddy/sites/broker.caddy:ro
+    ports:
+      - "8060:8060"
+      - "13100:13100"
+    networks: [pacod-net]
+    logging: *logging
+
+  pacod-prometheus:
+    image: prom/prometheus:v3.15.0
+    container_name: pacod-prometheus
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../platform/prometheus/broker.yml:/etc/prometheus/scrape.d/broker.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules/broker:ro
+    ports: ["127.0.0.1:19090:9090"]
+    networks: [pacod-net]
+    logging: *logging
+
+  pacod-grafana:
+    image: grafana/grafana:13.2.3
+    container_name: pacod-grafana
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/broker/broker-overview.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards/broker:ro
+    ports: ["127.0.0.1:13001:3000"]
+    networks: [pacod-net]
+    logging: *logging

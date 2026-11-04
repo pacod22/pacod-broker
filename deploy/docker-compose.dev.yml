@@ -1,0 +1,27 @@
+# Development override: builds the images from the working tree, publishes the ports on this
+# machine only and loads the example catalogue.
+#
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml up -d --build --wait
+#
+# Public API http://127.0.0.1:18060, admin API http://127.0.0.1:18061, metrics
+# http://127.0.0.1:19160, console http://127.0.0.1:13100.
+services:
+  pacod-broker:
+    build: { context: .., dockerfile: deploy/docker/rust.Dockerfile, target: broker }
+    environment:
+      # A published port never reaches an internal network, so the admin listener binds every
+      # address here.
+      BROKER_ADMIN_LISTEN: 0.0.0.0:8061
+      BROKER_CATALOG_FILE: /etc/pacod-broker/catalog.yaml
+      BROKER_LOG_FORMAT: text
+    volumes:
+      - ../examples/catalog.example.yaml:/etc/pacod-broker/catalog.yaml:ro
+    ports:
+      - "127.0.0.1:18060:8060"
+      - "127.0.0.1:18061:8061"
+      - "127.0.0.1:19160:9160"
+
+  broker-console:
+    build: { context: .., dockerfile: deploy/docker/ui.Dockerfile, target: ui }
+    ports:
+      - "127.0.0.1:13100:3000"

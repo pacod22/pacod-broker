@@ -1,0 +1,76 @@
+# Alert rules for pacod-broker. Every expression uses only series the broker exports
+# (crates/pacod-broker/src/metrics.rs). Job: pacod-broker (platform/prometheus/broker.yml).
+groups:
+  - name: pacod-broker
+    rules:
+      - alert: BrokerDown
+        expr: up{job="pacod-broker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "pacod-broker does not answer"
+          description: "Prometheus has not reached {{ $labels.instance }} for two minutes. Providers' leases run out and consumers find nothing."
+          runbook: "docs/runbook.md#7-alerts"
+
+      - alert: BrokerServerErrors
+        # More than 1 % of requests answered 5xx over 10 minutes, with at least 50 requests.
+        expr: |
+          (sum(rate(broker_http_requests_total{job="pacod-broker",status=~"5.."}[10m]))
+            / sum(rate(broker_http_requests_total{job="pacod-broker"}[10m]))) > 0.01
+          and sum(increase(broker_http_requests_total{job="pacod-broker"}[10m])) >= 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "pacod-broker answers with server errors"
+          description: "{{ $value | humanizePercentage }} of the requests failed over the last 10 minutes."
+          runbook: "docs/runbook.md#7-alerts"
+
+      - alert: BrokerIdentityUnavailable
+        # In oidc mode the broker answers 503 identity_unavailable while its copy of the roles
+        # is not current: pacod-id is down or unreachable on pacod-admin-net.
+        expr: sum(rate(broker_http_requests_total{job="pacod-broker",status="503"}[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "pacod-broker cannot ask pacod-id"
+          description: "Requests are refused with 503 for ten minutes; discovery of public resources still works."
+          runbook: "docs/runbook.md#7-alerts"
+
+      - alert: BrokerLeaseChurn
+        # Many leases end without a goodbye: providers crash, or their heartbeats do not arrive
+        # (a TTL too short for the network, a proxy in the way).
+        expr: sum(increase(broker_leases_expired_total{job="pacod-broker"}[30m])) > 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Providers' leases keep expiring"
+          description: "{{ $value }} leases ended without a goodbye in the last 30 minutes."
+          runbook: "docs/runbook.md#7-alerts"
+
+      - alert: BrokerDiscoverySlow
+        # The p99 of discovery in the index above 25 ms: a much larger catalogue than planned,
+        # or a host short of CPU.
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(broker_discover_seconds_bucket{job="pacod-broker"}[10m]))) > 0.025
+          and sum(rate(broker_discoveries_total{job="pacod-broker"}[10m])) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Discovery is slow"
+          description: "The p99 of a discovery query in the index is {{ $value | humanizeDuration }}."
+          runbook: "docs/runbook.md#7-alerts"
+
+      - alert: BrokerRebuildSlow
+        expr: histogram_quantile(0.99, sum by (le) (rate(broker_index_rebuild_seconds_bucket{job="pacod-broker"}[15m]))) > 1
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "Index rebuilds take more than a second"
+          description: "Announcements take that long to become visible. Raise BROKER_REBUILD_MS to gather more changes per rebuild."
+          runbook: "docs/runbook.md#7-alerts"

@@ -1,0 +1,20 @@
+# Build context for rust.Dockerfile: the Cargo workspace and nothing else.
+*
+
+!Cargo.toml
+!Cargo.lock
+!crates
+# The broker's manifest (built into the binary), the committed OpenAPI document (a test reads
+# it), the example file (a test reads it) and the vendored pacod-id crates.
+!authz
+!docs/openapi.json
+!deploy/.env.example
+!vendor/pacod-id
+!deploy/docker/healthcheck.rs
+
+**/target
+**/proptest-regressions
+**/.DS_Store
+**/.env
+**/.env.*
+!deploy/.env.example
