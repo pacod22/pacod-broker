@@ -7,6 +7,7 @@ pub mod app;
 pub mod auth;
 pub mod config;
 pub mod env;
+pub mod feeds;
 pub mod identity;
 pub mod metrics;
 pub mod openapi;

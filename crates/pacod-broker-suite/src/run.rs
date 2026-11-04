@@ -551,6 +551,27 @@ impl Run<'_> {
                 })
                 .await?;
             }
+            Step::PriceFeed { consumer, query, expect, status, within } => {
+                let c = self.consumer(consumer)?.clone();
+                let params: Vec<(String, String)> = query.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+                let feed = |c: BrokerClient, params: Vec<(String, String)>| async move {
+                    let p: Vec<(&str, &str)> = params.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+                    c.price_feed(&p).await
+                };
+                if status.is_some() {
+                    Self::check_status(feed(c, params).await, *status)?;
+                    return Ok(());
+                }
+                let this = &*self;
+                this.eventually(within.as_ref(), Duration::from_secs(5), || {
+                    let (c, params) = (c.clone(), params.clone());
+                    async move {
+                        let v = feed(c, params).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+                        this.check(&v, expect, None)
+                    }
+                })
+                .await?;
+            }
             Step::Watch { consumer } => {
                 let events = Arc::new(Mutex::new(Vec::new()));
                 let mut stream = Box::pin(self.consumer(consumer)?.watch(None).await?);

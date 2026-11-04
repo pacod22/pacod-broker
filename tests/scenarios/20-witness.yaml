@@ -1,0 +1,30 @@
+name: witness
+about: A gateway that carried a consumer's calls reports them on the consumer's own ticket. Only a principal with reports.witness may; a witness from the provider's own organisation does not count; the evidence is the consumer's.
+broker:
+  auth: oidc
+identity:
+  organisations: [acme, globex]
+  principals:
+    - { name: farm-svc, kind: service, organisation: acme, roles: [broker.provider@organisation] }
+    - { name: buyer, kind: user, organisation: globex, roles: [broker.consumer@organisation] }
+    - { name: gw-witness, kind: service, roles: [broker.witness@platform] }
+    - { name: acme-gw, kind: service, organisation: acme, roles: [broker.witness@platform] }
+    - { name: nosy, kind: user, organisation: globex, roles: [broker.consumer@organisation] }
+providers:
+  - { name: farm, from: announcements/llama.yaml, as: farm-svc }
+consumers:
+  - { name: buyer, as: buyer }
+  - { name: gw, as: gw-witness }
+  - { name: acmegw, as: acme-gw }
+  - { name: nosy, as: nosy }
+steps:
+  - start: farm
+  # The gateway confirms the buyer's calls on the buyer's ticket.
+  - report: { as: gw, on: farm/llama, outcome: ok, ttft_ms: 250, ticket_of: buyer, times: 3, accepted: 3 }
+  # A gateway of the provider's own organisation cannot raise its reputation.
+  - report: { as: acmegw, on: farm/llama, outcome: ok, ticket_of: buyer, accepted: 0 }
+  # Without the permission, another client's ticket is refused.
+  - report: { as: nosy, on: farm/llama, outcome: server_error, ticket_of: buyer, accepted: 0 }
+  - reputation:
+      expect:
+        resource farm/llama: { components.reliability.samples: ">=2.9", components.reliability.score: ">0.5" }

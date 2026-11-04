@@ -132,6 +132,22 @@ pub fn document() -> Value {
     );
     let rv = d.schema::<ResourceView>();
     d.op("get", "/v1/resources/{id}", "discovery", "Read one resource", None, 200, Some(rv.clone()), &[]);
+    let feed = d.schema::<crate::feeds::PriceFeed>();
+    d.op(
+        "get",
+        "/v1/feeds/prices",
+        "discovery",
+        "Prices in force, in pacod-gw's price feed format",
+        None,
+        200,
+        Some(feed),
+        &[
+            ("provider", "string", "A provider's id or name"),
+            ("kind", "string", ""),
+            ("currency", "string", "ISO 4217; the first resource's when absent"),
+            ("key", "string", "name (default), key or id"),
+        ],
+    );
     let pv = d.schema::<ProviderView>();
     d.op("get", "/v1/providers/{id}", "discovery", "Read one provider", None, 200, Some(pv), &[]);
     d.op(

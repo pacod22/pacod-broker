@@ -77,6 +77,12 @@ pub enum Evidence {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         price_listed: Option<f64>,
         at: Timestamp,
+        /// Who reported the call when it was not the client: a gateway that carried it
+        /// (`reports.witness`). The evidence stays the client's.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        witness: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        witness_org: Option<String>,
     },
     /// A rating, 1 to 5.
     Feedback {

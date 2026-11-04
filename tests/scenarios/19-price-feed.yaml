@@ -1,0 +1,33 @@
+name: price-feed
+about: The broker's prices in pacod-gw's price feed format. Base rates, off-peak windows as variants with their hours in UTC, input-token tiers; one currency per feed; compute rates, which gw cannot read, are left out.
+providers:
+  - name: eur
+    from: announcements/llama.yaml
+    set:
+      "resources[0].pricing.timezone": UTC
+      "resources[0].pricing.periods[0].windows": [{ name: off-peak, from_time: "22:00", to_time: "06:00", rates: { input: 0.3, output: 0.45 } }]
+      "resources[0].pricing.periods[0].tiers": [{ above: 200000, unit: input_tokens, rates: { input: 1.2 } }]
+  - { name: usd, from: announcements/llama.yaml, set: { "resources[0].pricing.currency": USD, "resources[0].pricing.periods[0].rates.input": 0.7 } }
+  - { name: farm, from: announcements/gpu-node.yaml }
+consumers:
+  - { name: tracker }
+steps:
+  - start: [eur, usd, farm]
+  - price_feed:
+      as: tracker
+      query: { provider: eur, key: key }
+      expect:
+        fields:
+          currency: EUR
+          models.llama.input: 0.6
+          models.llama.output: 0.9
+          models.llama.variants.off_peak.input: 0.3
+          models.llama.windows[0].hours_utc[0]: "00:00-06:00"
+          models.llama.windows[1].hours_utc[0]: "22:00-24:00"
+          models.llama.windows[1].weekdays[6]: 7
+          models.llama.tiers[0].above_input_tokens: 200000
+  # One currency per feed: the broker converts none.
+  - price_feed: { as: tracker, query: { currency: USD, key: key }, expect: { fields: { currency: USD, models.llama.input: 0.7 } } }
+  # Priced only per GPU hour: nothing gw could read.
+  - price_feed: { as: tracker, query: { provider: farm }, expect: { fields: { models: {} } } }
+  - price_feed: { as: tracker, query: { key: colour }, status: 422 }

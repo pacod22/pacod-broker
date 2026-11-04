@@ -106,6 +106,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/feeds/prices': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Prices in force, in pacod-gw's price feed format */
+		get: operations['get_v1_feeds_prices'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/providers/{id}': {
 		parameters: {
 			query?: never;
@@ -1677,6 +1694,107 @@ export interface components {
 			provider_reputation?: components['schemas']['Reputation'] | null;
 			ticket?: string | null;
 		};
+		/** @description A feed in pacod-gw's `pacod` format. */
+		PriceFeed: {
+			currency: string;
+			models: {
+				[key: string]: components['schemas']['FeedEntry'];
+			};
+		};
+		/** @description The rates gw's tracker reads; each optional. */
+		FeedEntry: {
+			/** Format: double */
+			input?: number | null;
+			/** Format: double */
+			output?: number | null;
+			/** Format: double */
+			cache_read?: number | null;
+			/**
+			 * Format: double
+			 * @description The broker's `cache_write`: gw names the five-minute write its default.
+			 */
+			cache_write_5m?: number | null;
+			/** Format: double */
+			reasoning?: number | null;
+			/** Format: double */
+			per_request?: number | null;
+			/**
+			 * Format: double
+			 * @description The broker's `per_call` (a tool or MCP call).
+			 */
+			per_server_tool_call?: number | null;
+			/** Format: double */
+			per_image?: number | null;
+			/** Format: double */
+			per_audio_second?: number | null;
+			variants: {
+				[key: string]: components['schemas']['FeedRates'];
+			};
+			tiers: components['schemas']['FeedTier'][];
+			windows: components['schemas']['FeedWindow'][];
+		};
+		/** @description The rates gw's tracker reads; each optional. */
+		FeedRates: {
+			/** Format: double */
+			input?: number | null;
+			/** Format: double */
+			output?: number | null;
+			/** Format: double */
+			cache_read?: number | null;
+			/**
+			 * Format: double
+			 * @description The broker's `cache_write`: gw names the five-minute write its default.
+			 */
+			cache_write_5m?: number | null;
+			/** Format: double */
+			reasoning?: number | null;
+			/** Format: double */
+			per_request?: number | null;
+			/**
+			 * Format: double
+			 * @description The broker's `per_call` (a tool or MCP call).
+			 */
+			per_server_tool_call?: number | null;
+			/** Format: double */
+			per_image?: number | null;
+			/** Format: double */
+			per_audio_second?: number | null;
+		};
+		/** @description The rates gw's tracker reads; each optional. */
+		FeedTier: {
+			/** Format: uint64 */
+			above_input_tokens: number;
+			/** Format: double */
+			input?: number | null;
+			/** Format: double */
+			output?: number | null;
+			/** Format: double */
+			cache_read?: number | null;
+			/**
+			 * Format: double
+			 * @description The broker's `cache_write`: gw names the five-minute write its default.
+			 */
+			cache_write_5m?: number | null;
+			/** Format: double */
+			reasoning?: number | null;
+			/** Format: double */
+			per_request?: number | null;
+			/**
+			 * Format: double
+			 * @description The broker's `per_call` (a tool or MCP call).
+			 */
+			per_server_tool_call?: number | null;
+			/** Format: double */
+			per_image?: number | null;
+			/** Format: double */
+			per_audio_second?: number | null;
+		};
+		/** @description Hours in which a variant applies: ISO weekdays and `HH:MM-HH:MM` spans in UTC. */
+		FeedWindow: {
+			variant: string;
+			weekdays: number[];
+			hours_utc: string[];
+		};
 		/** @description A provider, read on its own. */
 		ProviderView: {
 			id: string;
@@ -2121,6 +2239,43 @@ export interface operations {
 				};
 				content: {
 					'application/json': components['schemas']['ResourceView'];
+				};
+			};
+			/** @description A problem */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/problem+json': components['schemas']['Problem'];
+				};
+			};
+		};
+	};
+	get_v1_feeds_prices: {
+		parameters: {
+			query?: {
+				/** @description A provider's id or name */
+				provider?: string;
+				kind?: string;
+				/** @description ISO 4217; the first resource's when absent */
+				currency?: string;
+				/** @description name (default), key or id */
+				key?: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PriceFeed'];
 				};
 			};
 			/** @description A problem */

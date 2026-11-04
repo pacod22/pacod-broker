@@ -41,7 +41,7 @@ export class Provider {
 
 	constructor(
 		readonly client: BrokerClient,
-		readonly announcement: Announcement,
+		public announcement: Announcement,
 		readonly onEvent: (e: ProviderEvent) => void = () => {}
 	) {
 		// Open-mode brokers know the lease's owner by the provider's name.
@@ -115,6 +115,23 @@ export class Provider {
 			}
 		}
 		this.schedule();
+	}
+
+	/**
+	 * Announces a changed announcement under the same lease (resources added, changed or gone,
+	 * new prices); ids stay the same for the same keys. When the broker no longer knows the lease,
+	 * it announces afresh. Later re-announcements send this version.
+	 */
+	async update(announcement: Announcement): Promise<Announced> {
+		const fresh: Announcement = { ...announcement, lease_id: undefined };
+		this.announcement = fresh;
+		try {
+			this.announced = await this.client.announce({ ...fresh, lease_id: this.announced?.lease_id });
+		} catch (e) {
+			if (!(e instanceof BrokerError && e.notFound)) throw e;
+			this.announced = await this.client.announce(fresh);
+		}
+		return this.announced;
 	}
 
 	/**

@@ -107,11 +107,15 @@ impl Provider {
         let state = announced.clone();
         let owner = self.owner();
         let Provider { client, announcement, live } = self;
+        // Shared with `Running::update`, so a re-announcement after a lost lease sends the latest.
+        let announcement = Arc::new(RwLock::new(announcement));
+        let task_announcement = announcement.clone();
         let task_client = client.clone();
         let task_owner = owner.clone();
         let task = tokio::spawn(async move {
             let owner = task_owner;
             let client = task_client;
+            let announcement = task_announcement;
             let mut failures: u32 = 0;
             loop {
                 let (lease, every) = {
@@ -130,7 +134,7 @@ impl Provider {
                 }
                 match client.heartbeat(&lease, &live.heartbeat(), owner.as_deref()).await {
                     Ok(()) => failures = 0,
-                    Err(e) if e.is_not_found() => match client.announce(&announcement).await {
+                    Err(e) if e.is_not_found() => match client.announce(&announcement.read().await.clone()).await {
                         Ok(a) => {
                             failures = 0;
                             *state.write().await = a.clone();
@@ -152,13 +156,14 @@ impl Provider {
                 }
             }
         });
-        Ok(Running { client, announced, stop, task, owner })
+        Ok(Running { client, announcement, announced, stop, task, owner })
     }
 }
 
 /// A provider that keeps its lease alive.
 pub struct Running {
     client: BrokerClient,
+    announcement: Arc<RwLock<Announcement>>,
     announced: Arc<RwLock<Announced>>,
     stop: watch::Sender<bool>,
     task: JoinHandle<()>,
@@ -169,6 +174,24 @@ impl Running {
     /// The latest answer to an announcement: lease, resource ids by key.
     pub async fn announced(&self) -> Announced {
         self.announced.read().await.clone()
+    }
+
+    /// Announces a changed announcement under the same lease: resources added, changed or gone,
+    /// new prices. Ids stay the same for the same keys. When the broker no longer knows the
+    /// lease, it announces afresh. Later re-announcements send this version.
+    pub async fn update(&self, mut announcement: Announcement) -> Result<Announced> {
+        announcement.lease_id = None;
+        *self.announcement.write().await = announcement.clone();
+        announcement.lease_id = Some(self.announced.read().await.lease_id.clone());
+        let a = match self.client.announce(&announcement).await {
+            Err(e) if e.is_not_found() => {
+                announcement.lease_id = None;
+                self.client.announce(&announcement).await?
+            }
+            other => other?,
+        };
+        *self.announced.write().await = a.clone();
+        Ok(a)
     }
 
     /// Stops the heartbeats and ends the lease cleanly.

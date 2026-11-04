@@ -392,6 +392,11 @@ impl Pricing {
         }
     }
 
+    /// The period in force at `t`, if any.
+    pub fn period_in_force(&self, t: Timestamp) -> Option<&PricePeriod> {
+        self.period_at(t).map(|(_, p)| p)
+    }
+
     fn period_at(&self, t: Timestamp) -> Option<(usize, &PricePeriod)> {
         // Periods are few and in order; a linear scan from the end finds recent ones first.
         let n = self.periods.len();

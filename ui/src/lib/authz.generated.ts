@@ -32,6 +32,10 @@ export const manifestSource: ManifestSource = {
 			at: ['platform', 'organisation'],
 			permissions: ['resources.discover', 'reports.usage', 'reports.feedback']
 		},
+		witness: {
+			at: ['platform'],
+			permissions: ['reports.witness', 'resources.discover']
+		},
 		member: {
 			at: ['platform'],
 			permissions: ['resources.discover', 'reports.usage', 'reports.feedback'],
@@ -71,7 +75,8 @@ export type Role =
 	| 'broker.operator'
 	| 'broker.org_admin'
 	| 'broker.provider'
-	| 'broker.viewer';
+	| 'broker.viewer'
+	| 'broker.witness';
 
 export const ROLES: readonly Role[] = [
 	'broker.admin',
@@ -81,7 +86,8 @@ export const ROLES: readonly Role[] = [
 	'broker.operator',
 	'broker.org_admin',
 	'broker.provider',
-	'broker.viewer'
+	'broker.viewer',
+	'broker.witness'
 ];
 
 export type Permission =
@@ -91,6 +97,7 @@ export type Permission =
 	| 'broker.reports.client'
 	| 'broker.reports.feedback'
 	| 'broker.reports.usage'
+	| 'broker.reports.witness'
 	| 'broker.reputation.moderate'
 	| 'broker.resources.announce'
 	| 'broker.resources.discover';

@@ -183,6 +183,12 @@ impl BrokerClient {
         self.get(&format!("/v1/resources/{}", enc(id))).await
     }
 
+    /// Prices in force in pacod-gw's price feed format (`GET /v1/feeds/prices`), with the
+    /// parameters `provider`, `kind`, `currency` and `key` (`name`, `key` or `id`).
+    pub async fn price_feed(&self, params: &[(&str, &str)]) -> Result<serde_json::Value> {
+        Self::read(self.request(Method::GET, "/v1/feeds/prices").query(params).send().await?).await
+    }
+
     pub async fn provider(&self, id: &str) -> Result<ProviderView> {
         self.get(&format!("/v1/providers/{}", enc(id))).await
     }

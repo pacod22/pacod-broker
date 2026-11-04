@@ -82,15 +82,17 @@ label      = new (confidence < 0.3), else low < 0.4 ≤ fair < 0.6 ≤ good < 0.
 
 ## 6. Evidence intake: interaction tickets
 
-Every discovery result for an identified client carries a **ticket**: `tkt_<payload>.<signature>`. The payload is (client, resource, issued at), and the signature is HMAC-SHA256 with the broker's key. A ticket is valid for `BROKER_TICKET_TTL` (24 h by default).
+Every discovery result for an identified client carries a **ticket**: `tkt_<payload>.<signature>`. The payload is (client, the client's organisation, resource, issued at), and the signature is HMAC-SHA256 with the broker's key. A ticket is valid for `BROKER_TICKET_TTL` (24 h by default).
 
 - **Usage reports and ratings** quote a ticket issued to the same client. Without one they do not count, so nobody can rate what the broker never showed them.
+- **A witness** (`reports.witness`, the role `witness` at the platform) may report usage on another client's ticket: a gateway that carried the calls confirms how they went. The evidence is the ticket's client's, recorded with the witness; it counts against that client's limit of 120 reports per resource per hour. A witness from the provider's own organisation does not count. In open mode there are no witnesses, since anyone could claim to be one.
+- **A ticket carries its client's organisation** when it is issued, so the same-organisation rule holds when a witness reports on it.
 - **A provider reporting about a client** quotes the ticket the client presented to it. The broker checks that the ticket's resource is the provider's own.
 - **Tickets are stateless.** They are checked without a lookup. The key comes from `BROKER_TICKET_KEY`, or is kept in `BROKER_STATE_DIR/ticket.key`, or is made at start; in the last case tickets do not survive a restart.
 
 | Endpoint | Who | Body |
 |---|---|---|
-| `POST /v1/reports/usage` | Consumers and gateways | Up to 1000 `{ticket, outcome, ttft_ms?, ms_per_token?, price_charged?, rate?, at?}` |
+| `POST /v1/reports/usage` | Consumers, and witnesses on consumers' tickets | Up to 1000 `{ticket, outcome, ttft_ms?, ms_per_token?, price_charged?, rate?, at?}` |
 | `POST /v1/reports/feedback` | Consumers | `{ticket, rating 1–5, comment?}`. The comment is for admins only |
 | `POST /v1/reports/client` | Providers | `{ticket, kind: abuse \| policy_violation \| non_payment \| no_show \| late_cancel \| good_standing, details?}` |
 | `GET /v1/reputation/me` | Anyone identified | The caller's score as a client and as a provider |

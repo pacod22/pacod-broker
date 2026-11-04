@@ -137,6 +137,20 @@ class Provider(_LiveMixin):
                 failures += 1
                 self.on_event("retrying", str(e))
 
+    def update(self, announcement: dict[str, Any]) -> dict[str, Any]:
+        """Announces a changed announcement under the same lease (resources added, changed or
+        gone, new prices); ids stay the same for the same keys. When the broker no longer knows
+        the lease, it announces afresh. Later re-announcements send this version."""
+        fresh = {k: v for k, v in announcement.items() if k != "lease_id"}
+        self.announcement = fresh
+        try:
+            self.announced = self.client.announce({**fresh, "lease_id": self.announced["lease_id"]})
+        except BrokerError as e:
+            if not e.not_found:
+                raise
+            self.announced = self.client.announce(fresh)
+        return self.announced
+
     def stop(self) -> None:
         """Stops the heartbeats and ends the lease cleanly."""
         self._stop.set()
@@ -210,6 +224,18 @@ class AsyncProvider(_LiveMixin):
             except httpx.HTTPError as e:
                 failures += 1
                 self.on_event("retrying", str(e))
+
+    async def update(self, announcement: dict[str, Any]) -> dict[str, Any]:
+        """Announces a changed announcement under the same lease; see `Provider.update`."""
+        fresh = {k: v for k, v in announcement.items() if k != "lease_id"}
+        self.announcement = fresh
+        try:
+            self.announced = await self.client.announce({**fresh, "lease_id": self.announced["lease_id"]})
+        except BrokerError as e:
+            if not e.not_found:
+                raise
+            self.announced = await self.client.announce(fresh)
+        return self.announced
 
     async def stop(self) -> None:
         if self._task:

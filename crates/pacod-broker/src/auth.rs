@@ -19,6 +19,8 @@ pub mod perm {
     pub const REPORT_USAGE: &str = "reports.usage";
     pub const REPORT_FEEDBACK: &str = "reports.feedback";
     pub const REPORT_CLIENT: &str = "reports.client";
+    /// Report usage on other clients' tickets, as a gateway that carried the calls.
+    pub const WITNESS: &str = "reports.witness";
     pub const ADMIN_READ: &str = "broker.read";
     pub const ADMIN_MANAGE: &str = "broker.manage";
     pub const MODERATE: &str = "reputation.moderate";
@@ -84,6 +86,12 @@ impl Caller {
             Self::Anonymous => None,
             Self::Principal(p) => Some(p.sub.clone()),
         }
+    }
+
+    /// Whether the caller may witness others' calls. Only a pacod-id principal holding the
+    /// permission: in open mode anyone could claim to be a witness.
+    pub fn is_witness(&self) -> bool {
+        matches!(self, Self::Principal(p) if p.has(perm::WITNESS))
     }
 
     pub fn organisation(&self) -> Option<&str> {

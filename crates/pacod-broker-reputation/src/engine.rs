@@ -331,9 +331,13 @@ impl Engine {
                 declared_ttft_ms,
                 price_charged,
                 price_listed,
+                witness_org,
                 ..
             } => {
-                if client_org.is_some() && client_org == provider_org {
+                // Neither the client nor a witness may raise its own organisation's reputation.
+                if (client_org.is_some() && client_org == provider_org)
+                    || (witness_org.is_some() && witness_org == provider_org)
+                {
                     return None;
                 }
                 if limited(client, resource, USAGE_PER_HOUR) {

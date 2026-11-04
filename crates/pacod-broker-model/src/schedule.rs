@@ -107,7 +107,12 @@ pub enum Weekday {
 }
 
 impl Weekday {
-    fn of(d: Date) -> Self {
+    /// The ISO number: 1 is Monday, 7 is Sunday.
+    pub fn iso(self) -> u8 {
+        self as u8 + 1
+    }
+
+    pub fn of(d: Date) -> Self {
         use jiff::civil::Weekday as W;
         match d.weekday() {
             W::Monday => Self::Mon,
@@ -140,9 +145,14 @@ impl TimeOfDay {
         Self { secs: t.hour() as u32 * 3600 + t.minute() as u32 * 60 + t.second() as u32 }
     }
 
+    /// Seconds since midnight; 86 400 is `24:00`.
+    pub fn seconds(self) -> u32 {
+        self.secs
+    }
+
     /// The instant this time has on `date` in `tz`. A time that a daylight-saving change skips is
     /// moved forward, as clocks do; `24:00` is the next midnight.
-    fn on(self, date: Date, tz: &TimeZone) -> Option<Timestamp> {
+    pub fn on(self, date: Date, tz: &TimeZone) -> Option<Timestamp> {
         let (date, secs) = if self.secs >= 86_400 { (date.tomorrow().ok()?, 0) } else { (date, self.secs) };
         let t = Time::new((secs / 3600) as i8, ((secs / 60) % 60) as i8, (secs % 60) as i8, 0).ok()?;
         date.to_datetime(t).to_zoned(tz.clone()).ok().map(|z| z.timestamp())

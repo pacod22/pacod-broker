@@ -40,6 +40,7 @@ pub fn router(app: Shared) -> Router {
         .route("/v1/resources/{id}", get(get_resource))
         .route("/v1/providers/{id}", get(get_provider))
         .route("/v1/watch", get(watch))
+        .route("/v1/feeds/prices", get(price_feed))
         .route("/v1/reports/usage", post(report_usage))
         .route("/v1/reports/feedback", post(report_feedback))
         .route("/v1/reports/client", post(report_client))
@@ -220,6 +221,59 @@ async fn get_resource(
     Ok(Json(ResourceView::of(&app, Some(&c), e)))
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FeedParams {
+    /// A provider's id or name; every provider when absent.
+    pub provider: Option<String>,
+    pub kind: Option<String>,
+    /// The currency of the feed; the first resource's when absent. Others are left out: a feed
+    /// has one currency, and the broker converts none.
+    pub currency: Option<String>,
+    /// What names a model in the feed: `name` (the default), `key` or `id`.
+    pub key: Option<String>,
+}
+
+/// Prices in force in pacod-gw's `pacod` feed format (crate::feeds), for gateways' price trackers.
+async fn price_feed(
+    State(app): State<Shared>,
+    headers: HeaderMap,
+    QueryParams(p): QueryParams<FeedParams>,
+) -> Result<Json<crate::feeds::PriceFeed>, Problem> {
+    let c = caller(&app, &headers).await?;
+    require(&app, &c, perm::DISCOVER)?;
+    let key = p.key.as_deref().unwrap_or("name");
+    if !matches!(key, "name" | "key" | "id") {
+        return Err(Problem::invalid("key: name, key or id", vec![]));
+    }
+    let (idx, viewer, now) = (app.registry.index(), c.viewer(&app.cfg, None), Timestamp::now());
+    let mut currency = p.currency.clone();
+    let mut models = std::collections::BTreeMap::new();
+    for e in idx.entries() {
+        let s = &e.record.spec;
+        let Some(pricing) = s.pricing.as_ref() else { continue };
+        if e.live.is_expired(now)
+            || !viewer.can_see(&s.access.visibility)
+            || p.provider.as_ref().is_some_and(|x| *x != e.record.provider_id && *x != e.provider.profile.name)
+            || p.kind.as_ref().is_some_and(|k| *k != s.kind)
+        {
+            continue;
+        }
+        if currency.get_or_insert_with(|| pricing.currency.clone()) != &pricing.currency {
+            continue;
+        }
+        let Some(entry) = crate::feeds::entry(pricing, now) else { continue };
+        let name = match key {
+            "key" => s.key.clone(),
+            "id" => e.record.id.clone(),
+            _ => s.name.clone(),
+        };
+        // Entries come sorted by id, so the same name always resolves to the same resource.
+        models.entry(name).or_insert(entry);
+    }
+    Ok(Json(crate::feeds::PriceFeed { currency: currency.unwrap_or_else(|| "USD".into()), models }))
+}
+
 async fn get_provider(
     State(app): State<Shared>,
     headers: HeaderMap,
@@ -378,7 +432,10 @@ async fn report_usage(
     Body(b): Body<UsageBatch>,
 ) -> Result<Json<Accepted>, Problem> {
     let c = caller(&app, &headers).await?;
-    require(&app, &c, perm::REPORT_USAGE)?;
+    let witness = c.is_witness();
+    if !witness {
+        require(&app, &c, perm::REPORT_USAGE)?;
+    }
     let client = client_of(&c)?;
     if b.reports.len() > 1000 {
         return Err(Problem::bad_request("at most 1000 reports in one batch"));
@@ -388,8 +445,16 @@ async fn report_usage(
     let idx = app.registry.index();
     let (mut accepted, mut refused) = (0, Vec::new());
     for (i, r) in b.reports.into_iter().enumerate() {
-        let t = match app.tickets.check(&r.ticket, &client, None, now) {
-            Ok(t) => t,
+        // The ticket's own client reports for itself; a witness reports for the ticket's client.
+        let (t, by_witness) = match app.tickets.check(&r.ticket, &client, None, now) {
+            Ok(t) => (t, false),
+            Err(crate::tickets::TicketError::WrongClient) if witness => match app.tickets.open(&r.ticket, now) {
+                Ok(t) => (t, true),
+                Err(e) => {
+                    refused.push((i, e.to_string()));
+                    continue;
+                }
+            },
             Err(e) => {
                 refused.push((i, e.to_string()));
                 continue;
@@ -413,9 +478,11 @@ async fn report_usage(
             resource: e.record.id.clone(),
             provider: e.record.provider_id.clone(),
             kind: s.kind.clone(),
-            client: client.clone(),
-            client_org: c.organisation().map(String::from),
+            client: if by_witness { t.c.clone() } else { client.clone() },
+            client_org: if by_witness { t.o.clone() } else { c.organisation().map(String::from) },
             provider_org: e.provider.organisation_id.clone(),
+            witness: by_witness.then(|| client.clone()),
+            witness_org: if by_witness { c.organisation().map(String::from) } else { None },
             outcome: r.outcome,
             ttft_ms: r.ttft_ms,
             ms_per_token: r.ms_per_token,

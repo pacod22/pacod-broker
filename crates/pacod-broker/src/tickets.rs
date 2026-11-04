@@ -23,6 +23,10 @@ pub struct Ticket {
     pub r: String,
     /// Issued, milliseconds since the epoch.
     pub t: i64,
+    /// The client's organisation when it was issued, for the same-organisation rule when a
+    /// witness reports on the ticket. Tickets from before it existed have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub o: Option<String>,
 }
 
 pub struct Tickets {
@@ -52,9 +56,10 @@ impl Tickets {
         }
     }
 
-    pub fn issue(&self, client: &str, resource: &str, now: Timestamp) -> String {
-        let body = serde_json::to_vec(&Ticket { c: client.into(), r: resource.into(), t: now.as_millisecond() })
-            .unwrap_or_default();
+    pub fn issue(&self, client: &str, organisation: Option<&str>, resource: &str, now: Timestamp) -> String {
+        let t =
+            Ticket { c: client.into(), r: resource.into(), t: now.as_millisecond(), o: organisation.map(String::from) };
+        let body = serde_json::to_vec(&t).unwrap_or_default();
         let tag = hmac::sign(&self.key, &body);
         format!("{PREFIX}{}.{}", B64.encode(&body), B64.encode(tag.as_ref()))
     }
@@ -110,7 +115,7 @@ mod tests {
     fn tickets_round_trip_and_refuse_tampering() {
         let t = Tickets::new(b"0123456789abcdef0123456789abcdef", std::time::Duration::from_secs(3600));
         let now = Timestamp::now();
-        let tk = t.issue("c1", "res_1", now);
+        let tk = t.issue("c1", None, "res_1", now);
         assert_eq!(t.check(&tk, "c1", Some("res_1"), now).unwrap().r, "res_1");
         assert_eq!(t.check(&tk, "c2", Some("res_1"), now), Err(TicketError::WrongClient));
         assert_eq!(t.check(&tk, "c1", Some("res_2"), now), Err(TicketError::WrongResource));

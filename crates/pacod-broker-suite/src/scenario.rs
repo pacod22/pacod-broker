@@ -174,6 +174,19 @@ pub enum Step {
         #[serde(default)]
         within: Option<String>,
     },
+    /// The price feed in pacod-gw's format (`GET /v1/feeds/prices`), with query parameters.
+    PriceFeed {
+        #[serde(rename = "as")]
+        consumer: String,
+        #[serde(default)]
+        query: BTreeMap<String, String>,
+        #[serde(default)]
+        expect: Expect,
+        #[serde(default)]
+        status: Option<u16>,
+        #[serde(default)]
+        within: Option<String>,
+    },
     /// Start collecting the watch stream as a consumer.
     Watch {
         #[serde(rename = "as")]

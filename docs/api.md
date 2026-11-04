@@ -93,6 +93,14 @@ Each hit has these fields:
 | `GET /v1/resources/{id}` | One resource with its price and availability now, and a ticket |
 | `GET /v1/providers/{id}` | A profile, its inventory if visible, reputation and resources |
 | `GET /v1/schema` | The JSON Schemas of what the API takes |
+| `GET /v1/feeds/prices?provider=&kind=&currency=&key=name\|key\|id` | Prices in force in pacod-gw's price feed format (`pacod`), for gateways' price trackers (below) |
+
+**The price feed.** `{"currency", "models": {"<name>": {rates…, "variants", "tiers", "windows"}}}`, token rates per million tokens, as pacod-gw's tracker reads it ([pacod-gw.md](pacod-gw.md), R2a).
+- **One currency per feed:** the one asked for, or the first resource's. Resources in other currencies are left out; the broker converts none.
+- **Windows** become variants named after the window (`off-peak` → `off_peak`), with the hours they apply as ISO weekdays and `HH:MM-HH:MM` spans in UTC, for the current week.
+- **Left out**, because the format cannot say them: overrides, commitments, tiers by units other than input tokens, and compute rates (per second, hour or GPU hour). A resource priced only in those is not in the feed.
+- **Names:** `cache_write` is gw's `cache_write_5m`; `per_call` is `per_server_tool_call`.
+- **Who sees what:** the caller's visibility, as in discovery. gw's tracker fetches feeds without credentials, so it sees public resources, given `BROKER_PUBLIC_DISCOVERY` (or open mode).
 
 ### 3.3 Watch
 
@@ -110,7 +118,7 @@ Each hit has these fields:
 
 | Request | Body |
 |---|---|
-| `POST /v1/reports/usage` | `{"reports": [{"ticket", "outcome": "ok\|client_error\|server_error\|timeout\|rate_limited\|refused", "ttft_ms", "ms_per_token", "price_charged", "rate", "at"}]}`, up to 1000 |
+| `POST /v1/reports/usage` | `{"reports": [{"ticket", "outcome": "ok\|client_error\|server_error\|timeout\|rate_limited\|refused", "ttft_ms", "ms_per_token", "price_charged", "rate", "at"}]}`, up to 1000. The ticket's own client reports; a principal with `reports.witness` (a gateway that carried the calls) may report on other clients' tickets. |
 | `POST /v1/reports/feedback` | `{"ticket", "rating": 1–5, "comment"}` |
 | `POST /v1/reports/client` | (providers) `{"ticket", "kind": "abuse\|policy_violation\|non_payment\|no_show\|late_cancel\|good_standing", "details"}` |
 | `POST /v1/tickets/verify` | (providers) `{"ticket"}` returns the client, the resource and the client's reputation |

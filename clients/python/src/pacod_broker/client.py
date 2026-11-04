@@ -178,6 +178,10 @@ class BrokerClient:
     def resource(self, resource_id: str) -> dict[str, Any]:
         return _read(self._http.get(f"/v1/resources/{quote(resource_id, safe='')}"))
 
+    def price_feed(self, **params: str) -> dict[str, Any]:
+        """Prices in force in pacod-gw's price feed format (`provider`, `kind`, `currency`, `key`)."""
+        return _read(self._http.get("/v1/feeds/prices", params=params))
+
     def provider(self, provider_id: str) -> dict[str, Any]:
         return _read(self._http.get(f"/v1/providers/{quote(provider_id, safe='')}"))
 
@@ -275,6 +279,9 @@ class AsyncBrokerClient:
 
     async def resource(self, resource_id: str) -> dict[str, Any]:
         return _read(await self._http.get(f"/v1/resources/{quote(resource_id, safe='')}"))
+
+    async def price_feed(self, **params: str) -> dict[str, Any]:
+        return _read(await self._http.get("/v1/feeds/prices", params=params))
 
     async def provider(self, provider_id: str) -> dict[str, Any]:
         return _read(await self._http.get(f"/v1/providers/{quote(provider_id, safe='')}"))

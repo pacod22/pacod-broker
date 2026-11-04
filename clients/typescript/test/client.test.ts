@@ -139,6 +139,17 @@ describe.skipIf(!hasBroker)('against a broker', () => {
 		await eventually('re-announcement', async () => events.some((e) => e.kind === 'reannounced'));
 		expect(provider.announced!.resources.embed).toBe(rid);
 
+		// The price feed, and an update under the same lease.
+		const feed = await consumer.priceFeed({ provider: 'ts-provider' });
+		expect(typeof feed.models).toBe('object');
+		const changed = announcement('ts-provider');
+		changed.resources.push({ ...changed.resources[0], key: 'embed-b', name: 'embed-b' });
+		const lease = provider.announced!.lease_id;
+		const updated = await provider.update(changed);
+		expect(updated.lease_id).toBe(lease);
+		expect(updated.resources.embed).toBe(rid);
+		expect(updated.resources['embed-b']).toBeDefined();
+
 		await provider.stop();
 		await eventually(
 			'removal',

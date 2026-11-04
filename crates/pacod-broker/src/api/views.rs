@@ -66,7 +66,7 @@ impl DiscoverResponse {
             .hits
             .into_iter()
             .map(|h| {
-                let ticket = client.as_ref().map(|c| app.tickets.issue(c, &h.id, now));
+                let ticket = client.as_ref().map(|c| app.tickets.issue(c, caller.organisation(), &h.id, now));
                 HitView {
                     resource: h.entry.record.clone(),
                     provider: ProviderSummary::of(&h.entry.provider),
@@ -118,7 +118,9 @@ impl ResourceView {
             },
             reputation: scores.resources.get(&e.record.id).cloned(),
             provider_reputation: scores.providers.get(&e.record.provider_id).cloned(),
-            ticket: caller.and_then(Caller::client_id).map(|c| app.tickets.issue(&c, &e.record.id, now)),
+            ticket: caller
+                .and_then(|k| Some((k.client_id()?, k.organisation())))
+                .map(|(c, o)| app.tickets.issue(&c, o, &e.record.id, now)),
         }
     }
 }

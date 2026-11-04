@@ -27,7 +27,25 @@ fn usage(resource: &str, client: &str, outcome: Outcome, ttft: f64, at: Timestam
         price_charged: Some(1.0),
         price_listed: Some(1.0),
         at,
+        witness: None,
+        witness_org: None,
     }
+}
+
+#[test]
+fn a_witness_counts_for_the_client_but_not_for_its_own_organisation() {
+    let e = Engine::new(Settings::default(), None);
+    let witnessed = |witness_org: &str| {
+        let mut u = usage("r1", "c1", Outcome::Ok, 200.0, t0());
+        if let Evidence::Usage { witness, witness_org: w, provider_org, .. } = &mut u {
+            *witness = Some("gw".into());
+            *w = Some(witness_org.into());
+            *provider_org = Some("acme".into());
+        }
+        u
+    };
+    assert!(e.record(witnessed("platform")), "a witness outside the provider's organisation counts");
+    assert!(!e.record(witnessed("acme")), "a gateway of the provider's own organisation does not");
 }
 
 #[test]

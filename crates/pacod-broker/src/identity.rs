@@ -31,6 +31,7 @@ pub const PERMISSIONS: &[&str] = &[
     "reports.usage",
     "reports.feedback",
     "reports.client",
+    "reports.witness",
     "broker.read",
     "broker.manage",
     "reputation.moderate",

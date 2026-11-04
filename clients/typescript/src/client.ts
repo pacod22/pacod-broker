@@ -14,6 +14,7 @@ export type DiscoverResponse = S['DiscoverResponse'];
 export type Hit = S['HitView'];
 export type ResourceView = S['ResourceView'];
 export type ProviderView = S['ProviderView'];
+export type PriceFeed = S['PriceFeed'];
 export type UsageReport = S['UsageReport'];
 export type Outcome = S['Outcome'];
 export type Accepted = S['Accepted'];
@@ -179,6 +180,12 @@ export class BrokerClient {
 
 	provider(id: string): Promise<ProviderView> {
 		return this.call('GET', `/v1/providers/${enc(id)}`);
+	}
+
+	/** Prices in force in pacod-gw's price feed format (`provider`, `kind`, `currency`, `key`). */
+	priceFeed(params: { provider?: string; kind?: string; currency?: string; key?: 'name' | 'key' | 'id' } = {}): Promise<PriceFeed> {
+		const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]);
+		return this.call('GET', `/v1/feeds/prices?${qs}`);
 	}
 
 	/**

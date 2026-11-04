@@ -397,6 +397,75 @@
         ]
       }
     },
+    "/v1/feeds/prices": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Prices in force, in pacod-gw's price feed format",
+        "operationId": "get_v1_feeds_prices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceFeed"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "description": "A provider's id or name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "description": "ISO 4217; the first resource's when absent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "description": "name (default), key or id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/v1/providers/{id}": {
       "get": {
         "tags": [
@@ -4591,6 +4660,298 @@
           "available_now"
         ],
         "description": "One resource, read on its own."
+      },
+      "PriceFeed": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "models": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FeedEntry"
+            }
+          }
+        },
+        "required": [
+          "currency",
+          "models"
+        ],
+        "description": "A feed in pacod-gw's `pacod` format."
+      },
+      "FeedEntry": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "output": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_read": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_write_5m": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The broker's `cache_write`: gw names the five-minute write its default."
+          },
+          "reasoning": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_request": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_server_tool_call": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The broker's `per_call` (a tool or MCP call)."
+          },
+          "per_image": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_audio_second": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "variants": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FeedRates"
+            }
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedTier"
+            }
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedWindow"
+            }
+          }
+        },
+        "description": "The rates gw's tracker reads; each optional.",
+        "required": [
+          "variants",
+          "tiers",
+          "windows"
+        ]
+      },
+      "FeedRates": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "output": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_read": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_write_5m": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The broker's `cache_write`: gw names the five-minute write its default."
+          },
+          "reasoning": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_request": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_server_tool_call": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The broker's `per_call` (a tool or MCP call)."
+          },
+          "per_image": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_audio_second": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "The rates gw's tracker reads; each optional."
+      },
+      "FeedTier": {
+        "type": "object",
+        "properties": {
+          "above_input_tokens": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "input": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "output": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_read": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_write_5m": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The broker's `cache_write`: gw names the five-minute write its default."
+          },
+          "reasoning": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_request": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_server_tool_call": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The broker's `per_call` (a tool or MCP call)."
+          },
+          "per_image": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_audio_second": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        },
+        "required": [
+          "above_input_tokens"
+        ],
+        "description": "The rates gw's tracker reads; each optional."
+      },
+      "FeedWindow": {
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "weekdays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0,
+              "maximum": 255
+            }
+          },
+          "hours_utc": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "variant",
+          "weekdays",
+          "hours_utc"
+        ],
+        "description": "Hours in which a variant applies: ISO weekdays and `HH:MM-HH:MM` spans in UTC."
       },
       "ProviderView": {
         "type": "object",

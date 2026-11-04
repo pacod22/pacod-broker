@@ -157,7 +157,29 @@ async fn a_provider_and_a_consumer_through_the_rust_client() {
     assert_ne!(again.lease_id, first.lease_id);
     assert_eq!(again.resources["coder"], rid, "ids are derived, so they survive");
 
-    // Goodbye: the resource goes.
+    // The price feed, in pacod-gw's format.
+    let feed = consumer.price_feed(&[("provider", "rust-client-test")]).await.unwrap();
+    assert_eq!(feed["currency"], "EUR");
+    assert_eq!(feed["models"]["test-coder-7b"]["input"], 0.1);
+
+    // An update under the same lease: a second resource, a new price; ids stay.
+    let mut changed = Announcement::parse(ANNOUNCEMENT).unwrap();
+    let mut second = changed.resources[0].clone();
+    second.key = "chat".into();
+    second.name = "test-chat-7b".into();
+    changed.resources.push(second);
+    let updated = running.update(changed).await.unwrap();
+    assert_eq!(updated.lease_id, again.lease_id, "the same lease");
+    assert_eq!(updated.resources["coder"], rid);
+    assert!(updated.resources.contains_key("chat"));
+    eventually("the second resource", || {
+        let consumer = consumer.clone();
+        let q = q.clone();
+        async move { consumer.discover(&q).await.unwrap().total == 2 }
+    })
+    .await;
+
+    // Goodbye: the resources go.
     running.stop().await.unwrap();
     eventually("removal", || {
         let consumer = consumer.clone();

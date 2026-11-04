@@ -52,6 +52,8 @@ The runner exits with 1 when anything fails.
 | 16 | `same-organisation` (oidc) | A consumer in the provider's own organisation | Its ratings and reports do not count |
 | 17 | `identity-down` (oidc) | The mock pacod-id stops mid-run | Discovery and heartbeats go on; a token the broker has not seen gets 503; both recover |
 | 18 | `mixed-fleet` | 30 providers of every kind, consumers with different queries | Every result equals an independent filter of the announced data (the oracle) |
+| 19 | `price-feed` | Providers in EUR and USD, one with an off-peak window and a tier, a GPU node | The feed in pacod-gw's format: rates, windows as UTC hours, tiers; one currency; compute rates left out |
+| 20 | `witness` (oidc) | A gateway witness, a witness in the provider's organisation, a consumer without the permission | A witness's reports count on the consumer's ticket; the other two do not |
 
 **A new feature gets a scenario,** or a step in one that fits.
 
@@ -102,6 +104,7 @@ steps:
 | | `report: { as, on, outcome, ttft_ms, ms_per_token, price_charged, times, ticket_of, no_ticket, accepted }` | Usage reports, with a ticket; `accepted` is how many must count |
 | | `rate: { as, on, rating, ticket_of, accepted }` | A rating |
 | | `report_client: { provider, about, on, kind, status }` | A provider reports about a client that holds a ticket for `on` |
+| | `price_feed: { as, query, expect, status, within }` | The price feed (`GET /v1/feeds/prices`) with query parameters |
 | Broker | `admin: { action, target, side, file, status }` | `block`, `unblock`, `approve`, `verify`, `unverify`, `incident`, `evict`, `freeze`, `unfreeze`, `reset`, `reject_report`, `put_static`, `delete_static` |
 | | `admin_access: { as, token, status }` | Who may see the admin API |
 | | `restart_broker: { graceful }` | Stop and start the process |

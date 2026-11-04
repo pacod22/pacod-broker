@@ -68,6 +68,17 @@ def test_provider_and_consumer(broker_url):
     eventually(lambda: any(k == "reannounced" for k, _ in events), "re-announcement")
     assert provider.announced["resources"]["qwen"] == rid
 
+    # The price feed, and an update under the same lease.
+    feed = consumer.price_feed(provider="python-client-test")
+    assert isinstance(feed["models"], dict)
+    changed = copy.deepcopy(ANNOUNCEMENT)
+    second = copy.deepcopy(changed["resources"][0])
+    second["key"], second["name"] = "qwen-b", "qwen-b"
+    changed["resources"].append(second)
+    lease = provider.announced["lease_id"]
+    updated = provider.update(changed)
+    assert updated["lease_id"] == lease and updated["resources"]["qwen"] == rid and "qwen-b" in updated["resources"]
+
     stop_watch.set()
     provider.stop()
     eventually(lambda: consumer.discover(q="qwen")["total"] == 0, "removal")

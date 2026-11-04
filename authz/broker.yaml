@@ -10,6 +10,7 @@
 #   reports.usage         report how calls went, with an interaction ticket (consumers, gateways)
 #   reports.feedback      rate a resource, with an interaction ticket
 #   reports.client        report about a client (providers)
+#   reports.witness       report usage on other clients' tickets (gateways that carried the calls)
 #   broker.read           see everything the admin API shows
 #   broker.manage         static entries, leases, approval, blocking
 #   reputation.moderate   uphold or reject reports, freeze and reset scores
@@ -36,6 +37,10 @@ roles:
   consumer:
     at: [platform, organisation]
     permissions: [resources.discover, reports.usage, reports.feedback]
+  # A gateway that carries calls and confirms how they went (docs/pacod-gw.md, R3b).
+  witness:
+    at: [platform]
+    permissions: [reports.witness, resources.discover]
   # Every person signed in may search and rate what they used.
   member:
     at: [platform]
