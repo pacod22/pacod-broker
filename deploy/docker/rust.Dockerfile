@@ -49,8 +49,13 @@ RUN --mount=type=cache,id=pacod-broker-cargo-registry,target=/usr/local/cargo/re
 # The health probe: standard library only, for an image without curl.
 FROM chef AS healthcheck
 COPY deploy/docker/healthcheck.rs /src/healthcheck.rs
-RUN rustc --edition 2024 -C opt-level=s -C strip=symbols -C target-feature=+crt-static \
-      --target "$(cat /rust-target)" -o /out/healthcheck /src/healthcheck.rs
+# rustc writes into the output's directory and does not create it. The musl target links
+# statically by default.
+RUN set -eu; \
+    mkdir -p /out; \
+    rustc --edition 2024 --target "$(cat /rust-target)" \
+      -C opt-level=s -C panic=abort -C codegen-units=1 -C strip=symbols \
+      -o /out/healthcheck /src/healthcheck.rs
 
 FROM ${RUNTIME_IMAGE} AS broker
 ARG VERSION=dev
