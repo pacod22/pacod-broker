@@ -161,6 +161,14 @@ mod tests {
         let provider = Subject::service(vec![Binding::new("broker.provider", org.to_vec())]);
         assert!(catalog.allowed(&provider, "broker.resources.announce", &org));
         assert!(!catalog.allowed(&provider, "broker.broker.manage", &platform));
+        // A provisioner (pacod-cms) gives broker.provider in any organisation, and nothing else:
+        // no platform role, no announcing or reading of its own.
+        let provisioner = Subject::service(vec![Binding::new("broker.provisioner", platform.to_vec())]);
+        assert!(catalog.can_grant(&provisioner, "broker.provider", &org).is_ok());
+        assert!(catalog.can_grant(&provisioner, "broker.viewer", &platform).is_err());
+        assert!(catalog.can_grant(&provisioner, "broker.provisioner", &platform).is_err());
+        assert!(!catalog.allowed(&provisioner, "broker.resources.announce", &org));
+        assert!(!catalog.allowed(&provisioner, "broker.broker.read", &platform));
         // The admin may do everything.
         let admin = Subject::user(vec![Binding::new("broker.admin", platform.to_vec())]);
         for p in PERMISSIONS {

@@ -41,6 +41,13 @@ roles:
   witness:
     at: [platform]
     permissions: [reports.witness, resources.discover]
+  # A product that announces on behalf of its organisations (pacod-cms, docs/integration.md
+  # section 5): it creates a provider account in each organisation and binds broker.provider
+  # there, which pacod-id allows to whoever holds members.manage at the scope. It can do
+  # nothing else, and only a broker admin gives it.
+  provisioner:
+    at: [platform]
+    permissions: [members.manage]
   # Every person signed in may search and rate what they used.
   member:
     at: [platform]
@@ -57,3 +64,4 @@ grant:
   operator: broker.manage
   moderator: broker.manage
   viewer: broker.manage
+  provisioner: broker.manage

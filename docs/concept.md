@@ -189,7 +189,7 @@ The same engine answers `GET /v1/resources` (common filters as parameters) and t
 |---|---|
 | People | Access tokens checked locally against pacod-id's keys (audience `pacod-broker`). |
 | Providers and machines | **Service accounts** with `pidt_…` tokens, introspected and cached for 60 s. Revocation reaches the broker through the change feed. They are created in pacod-id's administration (`/admin/service-accounts`). |
-| Roles | `authz/broker.yaml`, pushed to pacod-id at every start. Roles: `admin`, `operator`, `moderator`, `viewer` (platform); `provider` and `consumer` (platform or organisation); `witness` (platform: gateways that report usage on the calls they carried); `org_admin` (organisation); and `member`, implicit for every person (discover and rate). The broker follows pacod-id's feed of role bindings and decides locally. |
+| Roles | `authz/broker.yaml`, pushed to pacod-id at every start. Roles: `admin`, `operator`, `moderator`, `viewer` (platform); `provider` and `consumer` (platform or organisation); `witness` (platform: gateways that report usage on the calls they carried); `provisioner` (platform: a product such as pacod-cms that makes a provider account in each of its organisations, holding `members.manage` only); `org_admin` (organisation); and `member`, implicit for every person (discover and rate). The broker follows pacod-id's feed of role bindings and decides locally. |
 | pacod-id unavailable | Discovery never waits for pacod-id. While the copy of the bindings is not ready, callers are anonymous, and the admin API answers 503 `identity_unavailable`. |
 
 ## 6. The console
