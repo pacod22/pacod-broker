@@ -1,0 +1,15 @@
+[package]
+name = "pacod-broker-logging"
+description = "The log of every pacod-broker binary: the event of the pacod logging convention (pacod-demo/docs/LOGGING.md) in JSON or text, and its level and format from the environment. Copied from pacod-gw-logging."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+serde_json.workspace = true
+tracing.workspace = true
+# Records of crates that log through the `log` facade (rustls, among others) become events.
+tracing-log = { version = "0.2", default-features = false, features = ["log-tracer", "std"] }
+tracing-subscriber.workspace = true

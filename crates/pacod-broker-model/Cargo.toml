@@ -1,0 +1,20 @@
+[package]
+name = "pacod-broker-model"
+description = "The broker's data model: provider profiles, inventories, resources, pricing and availability over time, reputation views. Pure: no I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hex.workspace = true
+jiff.workspace = true
+ring.workspace = true
+schemars.workspace = true
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

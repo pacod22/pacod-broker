@@ -1,0 +1,67 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/pacod-broker",
+    "crates/pacod-broker-index",
+    "crates/pacod-broker-logging",
+    "crates/pacod-broker-model",
+    "crates/pacod-broker-reputation",
+]
+# pacod-id, vendored by scripts/vendor-pacod-id.sh: its crates are path dependencies, not members.
+exclude = ["vendor"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.90"
+# Built into images, never published to crates.io.
+publish = false
+
+[workspace.dependencies]
+pacod-broker-index = { path = "crates/pacod-broker-index" }
+pacod-broker-logging = { path = "crates/pacod-broker-logging" }
+pacod-broker-model = { path = "crates/pacod-broker-model" }
+pacod-broker-reputation = { path = "crates/pacod-broker-reputation" }
+
+anyhow = "1"
+arc-swap = "1"
+axum = { version = "0.8", default-features = false, features = ["http1", "http2", "json", "query", "tokio", "macros"] }
+base64 = "0.22"
+bytes = "1"
+clap = { version = "4", features = ["derive", "env"] }
+futures-util = "0.3"
+hex = "0.4"
+http = "1"
+# Time zones for schedules and price windows. The database is bundled so that the distroless
+# image, which has no /usr/share/zoneinfo, resolves the same zones as a developer's machine.
+jiff = { version = "0.2", features = ["serde", "tzdb-bundle-always"] }
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.18", default-features = false }
+mimalloc = { version = "0.1", default-features = false }
+parking_lot = "0.12"
+ring = "0.17"
+schemars = { version = "1", features = ["jiff02"] }
+semver = { version = "1", features = ["serde"] }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde-saphyr = { version = "1.3", default-features = false, features = ["deserialize"] }
+subtle = "2"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "fs", "io-util"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tower = { version = "0.5", features = ["limit", "util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1", features = ["v7", "serde"] }
+
+# test-only
+criterion = { version = "0.5", default-features = false }
+proptest = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = "symbols"
+# The broker holds no state a panic could leave half-written that a restart would not rebuild.
+panic = "abort"
