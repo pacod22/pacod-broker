@@ -70,6 +70,17 @@ fn run(command: Command, env_file: Option<PathBuf>) -> anyhow::Result<()> {
             for w in &cfg.warnings {
                 tracing::warn!("{w}");
             }
+            // Every provider and consumer connection takes a descriptor. Soft limits start low
+            // (1 024 under systemd, 256 on macOS), and short of descriptors the broker would stop
+            // accepting connections while the ones it holds go on, which looks like a hang.
+            match raise_open_files() {
+                Some(n) if n < 4096 => tracing::warn!(
+                    open_files = n,
+                    "the open-file limit is low; each connection takes one (raise it with ulimit -n or LimitNOFILE)"
+                ),
+                Some(n) => tracing::debug!(open_files = n, "open-file limit"),
+                None => {}
+            }
             let workers = std::thread::available_parallelism().map_or(2, usize::from);
             // Announcements, rebuilds and reputation runs go to the blocking pool, and every
             // announcement takes the registry's lock, so threads beyond a few per core only wait.
@@ -156,4 +167,35 @@ async fn wait_for_signal(server: &Server) {
         let _ = server;
         let _ = tokio::signal::ctrl_c().await;
     }
+}
+
+/// Raises the soft limit on open files to the hard limit; the limit now in force.
+#[cfg(unix)]
+fn raise_open_files() -> Option<u64> {
+    let mut r = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+    // SAFETY: getrlimit and setrlimit only read and write the struct passed to them.
+    unsafe {
+        if libc::getrlimit(libc::RLIMIT_NOFILE, &mut r) != 0 {
+            return None;
+        }
+        // macOS refuses more than OPEN_MAX (10 240) even when the hard limit is unlimited.
+        for want in [r.rlim_max, r.rlim_max.min(10_240)] {
+            if want <= r.rlim_cur {
+                break;
+            }
+            let raised = libc::rlimit { rlim_cur: want, rlim_max: r.rlim_max };
+            if libc::setrlimit(libc::RLIMIT_NOFILE, &raised) == 0 {
+                r.rlim_cur = want;
+                break;
+            }
+        }
+    }
+    // rlim_t is u64 on Linux and macOS, not on every Unix.
+    #[allow(clippy::useless_conversion)]
+    u64::try_from(r.rlim_cur).ok()
+}
+
+#[cfg(not(unix))]
+fn raise_open_files() -> Option<u64> {
+    None
 }

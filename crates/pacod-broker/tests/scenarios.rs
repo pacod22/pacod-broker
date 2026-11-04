@@ -13,6 +13,13 @@ async fn every_scenario_passes() {
     let results =
         pacod_broker_suite::run_scenarios(&root.join("tests/scenarios"), &only, &bin, &work, 4).await.unwrap();
     assert!(!results.is_empty(), "no scenarios found");
+    // The full report, with every step and the brokers' logs, for a failure to be looked at.
+    let report = pacod_broker_suite::Report {
+        broker: bin.display().to_string(),
+        scenarios: results.clone(),
+        ..Default::default()
+    };
+    let _ = report.write(&work);
     let mut failed = Vec::new();
     for r in &results {
         if !r.passed {

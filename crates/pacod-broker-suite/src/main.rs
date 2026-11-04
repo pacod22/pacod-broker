@@ -89,15 +89,19 @@ async fn main() -> anyhow::Result<()> {
                 );
             }
             println!(
-                "     broker: discover p99 {} and heartbeat p99 {} inside, rebuild p99 {}, RSS peak {:.0} MB, CPU {:.1} s",
+                "     broker: discover p99 {} and heartbeat p99 {} inside, rebuild p99 {}, RSS peak {}, CPU {}",
                 l.server_discover_p99_ms.map_or("—".into(), |v| format!("{v:.2} ms")),
                 l.server_heartbeat_p99_ms.map_or("—".into(), |v| format!("{v:.2} ms")),
                 l.rebuild_p99_ms.map_or("—".into(), |v| format!("{v:.1} ms")),
-                l.rss_peak_mb,
-                l.cpu_seconds
+                l.rss_peak_mb.map_or("—".into(), |v| format!("{v:.0} MB")),
+                l.cpu_seconds.map_or("—".into(), |v| format!("{v:.1} s"))
             );
             for t in l.targets.iter().filter(|t| !t.met) {
-                println!("     target {} {} not met: {:.2}", t.name, t.wanted, t.measured);
+                if t.measured.is_nan() {
+                    println!("     target {} {} not measured", t.name, t.wanted);
+                } else {
+                    println!("     target {} {} not met: {:.2}", t.name, t.wanted, t.measured);
+                }
             }
         }
     }

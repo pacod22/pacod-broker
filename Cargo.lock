@@ -1361,6 +1361,7 @@ dependencies = [
  "hex",
  "http",
  "jiff",
+ "libc",
  "metrics",
  "metrics-exporter-prometheus",
  "mimalloc",

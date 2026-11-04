@@ -24,6 +24,10 @@ pub struct App {
     pub sink: Option<Arc<FileSink>>,
     pub metrics: Option<metrics_exporter_prometheus::PrometheusHandle>,
     pub started_at: Timestamp,
+    /// True once this broker stops: `/readyz` fails so load balancers stop sending, and
+    /// long-lived streams (watch, admin events) end, so a graceful shutdown does not wait for
+    /// watchers to hang up. Per broker, not per process: tests run several in one process.
+    pub stopping: tokio::sync::watch::Sender<bool>,
 }
 
 /// The reputation scores in the form the index reads them.
@@ -40,6 +44,19 @@ impl IndexScores for ScoresView {
 }
 
 impl App {
+    /// Whether this broker is stopping.
+    pub fn is_stopping(&self) -> bool {
+        *self.stopping.borrow()
+    }
+
+    /// A future that completes when this broker stops.
+    pub fn stopped(&self) -> impl std::future::Future<Output = ()> + Send + use<> {
+        let mut rx = self.stopping.subscribe();
+        async move {
+            let _ = rx.wait_for(|v| *v).await;
+        }
+    }
+
     /// Builds the broker's state from its configuration: opens the state directory, restores
     /// reputation and the static entries.
     pub fn build(
@@ -111,6 +128,7 @@ impl App {
             sink,
             metrics,
             started_at: Timestamp::now(),
+            stopping: tokio::sync::watch::channel(false).0,
         }))
     }
 

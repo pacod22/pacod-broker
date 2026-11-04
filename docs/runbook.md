@@ -75,6 +75,7 @@ Leased entries are never written: after a restart, providers announce again on t
 | Resource | Figure |
 |---|---|
 | Memory | About 23 MB idle with a small catalogue. Allow roughly 2 to 4 KB per resource, plus its description and examples. The compose file limits the container to 256 MB. |
+| Open files | One per connection: every provider holds one for its heartbeats, every consumer one while it calls. The broker raises its soft limit to the hard limit at start, and warns when that leaves fewer than 4 096. Outside a container, raise the hard limit (`LimitNOFILE` under systemd, `ulimit -n`). |
 | CPU | Discovery is CPU-bound and lock-free, and scales with cores. Index rebuilds run off the request threads; a rebuild of 10 000 resources takes about 150 ms. With many announcements per second, raise `BROKER_REBUILD_MS` so more changes go into each rebuild. |
 | Limits | `BROKER_MAX_RESOURCES` (100 000), `BROKER_MAX_RESOURCES_PER_PROVIDER` (5 000) and `BROKER_MAX_LEASES_PER_PROVIDER` (16) bound memory whatever providers send. |
 

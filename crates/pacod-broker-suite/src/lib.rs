@@ -44,6 +44,8 @@ pub async fn run_scenarios(
     work: &Path,
     jobs: usize,
 ) -> anyhow::Result<Vec<ScenarioResult>> {
+    // Many brokers and clients at once need more descriptors than macOS's default of 256.
+    broker::raise_open_files();
     let mut list = Vec::new();
     for f in files(dir)? {
         let s = Scenario::load(&f)?;
@@ -77,6 +79,8 @@ pub async fn run_loads(
     work: &Path,
     scale: f64,
 ) -> anyhow::Result<Vec<LoadResult>> {
+    // Many brokers and clients at once need more descriptors than macOS's default of 256.
+    broker::raise_open_files();
     let mut out = Vec::new();
     for f in files(dir)? {
         let r = LoadRun::load(&f)?;

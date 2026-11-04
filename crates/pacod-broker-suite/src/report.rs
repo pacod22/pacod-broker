@@ -98,10 +98,12 @@ impl Report {
                 }
                 let _ = writeln!(
                     s,
-                    "\nBroker: RSS peak {:.0} MB, CPU {:.1} s ({:.0} % of one core); inside the broker discovery p99 {} and heartbeat p99 {}; index rebuild p99 {}; leases expired {}; expired leases seen in results {}.\n",
-                    l.rss_peak_mb,
-                    l.cpu_seconds,
-                    100.0 * l.cpu_seconds / l.seconds.max(0.001),
+                    "\nBroker: RSS peak {}, CPU {}; inside the broker discovery p99 {} and heartbeat p99 {}; index rebuild p99 {}; leases expired {}; expired leases seen in results {}.\n",
+                    l.rss_peak_mb.map_or("not measured".into(), |v| format!("{v:.0} MB")),
+                    l.cpu_seconds.map_or("not measured".into(), |c| format!(
+                        "{c:.1} s ({:.0} % of one core)",
+                        100.0 * c / l.seconds.max(0.001)
+                    )),
                     l.server_discover_p99_ms.map_or("—".into(), |v| format!("{v:.2} ms")),
                     l.server_heartbeat_p99_ms.map_or("—".into(), |v| format!("{v:.2} ms")),
                     l.rebuild_p99_ms.map_or("—".into(), |v| format!("{v:.1} ms")),
@@ -110,12 +112,13 @@ impl Report {
                 );
                 let _ = writeln!(s, "| Target | Wanted | Measured | Met |\n|---|---|---|---|");
                 for t in &l.targets {
+                    let measured =
+                        if t.measured.is_nan() { "not measured".to_string() } else { format!("{:.2}", t.measured) };
                     let _ = writeln!(
                         s,
-                        "| {} | {} | {:.2} | {} |",
+                        "| {} | {} | {measured} | {} |",
                         t.name,
                         t.wanted,
-                        t.measured,
                         if t.met { "yes" } else { "**no**" }
                     );
                 }

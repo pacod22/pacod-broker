@@ -20,6 +20,62 @@ pub struct BrokerProcess {
     started: Instant,
 }
 
+/// Raises this process's soft limit on open files to its hard limit, and returns the limit now in
+/// force. Every provider and consumer of a load run holds a connection, and the broker inherits
+/// the limit; macOS starts processes at 256, which a run of a few hundred providers exhausts.
+#[cfg(unix)]
+pub fn raise_open_files() -> Option<u64> {
+    let mut r = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+    // SAFETY: getrlimit and setrlimit only read and write the struct passed to them.
+    unsafe {
+        if libc::getrlimit(libc::RLIMIT_NOFILE, &mut r) != 0 {
+            return None;
+        }
+        // macOS refuses more than OPEN_MAX (10 240) even when the hard limit is unlimited.
+        for want in [r.rlim_max, r.rlim_max.min(10_240)] {
+            if want <= r.rlim_cur {
+                break;
+            }
+            let raised = libc::rlimit { rlim_cur: want, rlim_max: r.rlim_max };
+            if libc::setrlimit(libc::RLIMIT_NOFILE, &raised) == 0 {
+                r.rlim_cur = want;
+                break;
+            }
+        }
+    }
+    // rlim_t is u64 on Linux and macOS, not on every Unix.
+    #[allow(clippy::useless_conversion)]
+    u64::try_from(r.rlim_cur).ok()
+}
+
+#[cfg(not(unix))]
+pub fn raise_open_files() -> Option<u64> {
+    None
+}
+
+/// `ps` time (`[dd-][hh:]mm:ss[.ss]`) in seconds.
+fn ps_time(s: &str) -> Option<f64> {
+    let (days, rest) = match s.split_once('-') {
+        Some((d, r)) => (d.parse::<f64>().ok()?, r),
+        None => (0.0, s),
+    };
+    let mut total = 0.0;
+    for part in rest.split(':') {
+        total = total * 60.0 + part.parse::<f64>().ok()?;
+    }
+    Some(days * 86_400.0 + total)
+}
+
+/// RSS in kB and CPU time in seconds from `ps`, where there is no /proc (macOS).
+fn ps_stats(pid: u32) -> Option<(f64, f64)> {
+    let out =
+        std::process::Command::new("ps").args(["-o", "rss=", "-o", "time=", "-p", &pid.to_string()]).output().ok()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let mut f = text.split_whitespace();
+    let kb: f64 = f.next()?.parse().ok()?;
+    Some((kb, ps_time(f.next()?)?))
+}
+
 /// A port nobody listens on now.
 pub fn free_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).map(|a| a.port()).unwrap_or(0)
@@ -139,20 +195,29 @@ impl BrokerProcess {
 
     /// Resident memory, in MB.
     pub fn rss_mb(&self) -> Option<f64> {
-        let status = std::fs::read_to_string(format!("/proc/{}/status", self.pid()?)).ok()?;
-        let line = status.lines().find(|l| l.starts_with("VmRSS:"))?;
-        let kb: f64 = line.split_whitespace().nth(1)?.parse().ok()?;
+        let pid = self.pid()?;
+        let from_proc = || {
+            let status = std::fs::read_to_string(format!("/proc/{pid}/status")).ok()?;
+            let line = status.lines().find(|l| l.starts_with("VmRSS:"))?;
+            line.split_whitespace().nth(1)?.parse::<f64>().ok()
+        };
+        let kb = from_proc().or_else(|| ps_stats(pid).map(|(kb, _)| kb))?;
         Some(kb / 1024.0)
     }
 
     /// CPU time used so far, in seconds (user + system).
     pub fn cpu_seconds(&self) -> Option<f64> {
-        let stat = std::fs::read_to_string(format!("/proc/{}/stat", self.pid()?)).ok()?;
-        // The command name is in parentheses and may hold spaces: count fields after it.
-        let rest = &stat[stat.rfind(')')? + 2..];
-        let f: Vec<&str> = rest.split_whitespace().collect();
-        let ticks = unsafe { libc::sysconf(libc::_SC_CLK_TCK) } as f64;
-        Some((f.get(11)?.parse::<f64>().ok()? + f.get(12)?.parse::<f64>().ok()?) / ticks)
+        let pid = self.pid()?;
+        let from_proc = || {
+            let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+            // The command name is in parentheses and may hold spaces: count fields after it.
+            let rest = &stat[stat.rfind(')')? + 2..];
+            let f: Vec<&str> = rest.split_whitespace().collect();
+            // SAFETY: sysconf reads a constant of the system.
+            let ticks = unsafe { libc::sysconf(libc::_SC_CLK_TCK) } as f64;
+            Some((f.get(11)?.parse::<f64>().ok()? + f.get(12)?.parse::<f64>().ok()?) / ticks)
+        };
+        from_proc().or_else(|| ps_stats(pid).map(|(_, cpu)| cpu))
     }
 
     pub fn log_tail(&self, lines: usize) -> String {
@@ -161,12 +226,15 @@ impl BrokerProcess {
         all[all.len().saturating_sub(lines)..].join("\n")
     }
 
-    /// The broker's /metrics, as text.
+    /// The broker's /metrics, as text; empty when it cannot be read.
     pub async fn metrics_text(&self) -> String {
-        match reqwest::get(format!("{}/metrics", self.metrics)).await {
-            Ok(r) => r.text().await.unwrap_or_default(),
-            Err(_) => String::new(),
-        }
+        self.try_metrics_text().await.unwrap_or_default()
+    }
+
+    /// The broker's /metrics, or why it cannot be read.
+    pub async fn try_metrics_text(&self) -> anyhow::Result<String> {
+        let r = reqwest::get(format!("{}/metrics", self.metrics)).await?.error_for_status()?;
+        Ok(r.text().await?)
     }
 }
 
@@ -234,6 +302,21 @@ pub fn histogram_quantile_of(text: &str, name: &str, label: &str, q: f64) -> Opt
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ps_times_read_on_linux_and_macos() {
+        assert_eq!(ps_time("00:01:05"), Some(65.0));
+        assert_eq!(ps_time("1:02.50"), Some(62.5));
+        assert_eq!(ps_time("2-00:00:01"), Some(172_801.0));
+        assert_eq!(ps_time("x"), None);
+    }
+
+    #[test]
+    fn ps_reads_a_process() {
+        // The path macOS takes, where there is no /proc.
+        let (kb, cpu) = ps_stats(std::process::id()).expect("ps answers for this process");
+        assert!(kb > 0.0 && cpu >= 0.0, "{kb} kB, {cpu} s");
+    }
 
     #[test]
     fn metrics_are_read() {

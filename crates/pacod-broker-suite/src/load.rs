@@ -17,7 +17,7 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::broker::{BrokerProcess, histogram_quantile, histogram_quantile_of, metric_sum};
+use crate::broker::{BrokerProcess, histogram_quantile, histogram_quantile_of, metric_sum, raise_open_files};
 use crate::expect::set;
 use crate::scenario::{BrokerSetup, duration};
 
@@ -132,8 +132,9 @@ pub struct LoadResult {
     pub consumers: usize,
     pub seconds: f64,
     pub operations: Vec<OpStats>,
-    pub rss_peak_mb: f64,
-    pub cpu_seconds: f64,
+    /// `None` when the broker's memory or CPU could not be read.
+    pub rss_peak_mb: Option<f64>,
+    pub cpu_seconds: Option<f64>,
     pub rebuild_p99_ms: Option<f64>,
     /// Discovery inside the broker (its own histogram), without HTTP and the load generator's
     /// share of the CPU.
@@ -244,8 +245,8 @@ pub async fn run_load(run: &LoadRun, bin: &Path, work: &Path, scale: f64) -> Loa
         consumers,
         seconds: length.as_secs_f64(),
         operations: Vec::new(),
-        rss_peak_mb: 0.0,
-        cpu_seconds: 0.0,
+        rss_peak_mb: None,
+        cpu_seconds: None,
         rebuild_p99_ms: None,
         server_discover_p99_ms: None,
         server_heartbeat_p99_ms: None,
@@ -280,6 +281,18 @@ async fn drive(
     env.entry("RUST_LOG".into()).or_insert_with(|| "warn".into());
     let max = (providers * run.providers.resources_each * 2).max(100_000);
     env.entry("BROKER_MAX_RESOURCES".into()).or_insert_with(|| max.to_string());
+    // Every provider and consumer holds a connection, on the runner's side and on the broker's,
+    // which inherits the runner's limit. Short of descriptors, new connections fail while the
+    // ones already open go on, so the run would measure nonsense rather than fail.
+    let needed = (providers + consumers + 64) as u64;
+    if let Some(limit) = raise_open_files() {
+        anyhow::ensure!(
+            limit >= needed,
+            "the open-file limit is {limit}, and this run needs about {needed} (a connection per provider and consumer); \
+             raise it (ulimit -n {}) or run at a smaller --scale",
+            needed.next_power_of_two()
+        );
+    }
     let _ = std::fs::remove_dir_all(work);
     let broker = BrokerProcess::start(bin, env, work, false).await?;
     let client = BrokerClient::new(&broker.public)?;
@@ -388,19 +401,29 @@ async fn drive(
 
     // Warm up, then measure.
     tokio::time::sleep(duration(&run.warmup)?).await;
-    let cpu0 = broker.cpu_seconds().unwrap_or(0.0);
+    let cpu0 = broker.cpu_seconds();
     rec.measuring.store(true, Ordering::Relaxed);
     let began = Instant::now();
-    let mut rss_peak: f64 = 0.0;
+    let mut rss_peak: Option<f64> = None;
     while began.elapsed() < length {
-        rss_peak = rss_peak.max(broker.rss_mb().unwrap_or(0.0));
+        if let Some(mb) = broker.rss_mb() {
+            rss_peak = Some(rss_peak.map_or(mb, |p| p.max(mb)));
+        }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
     rec.measuring.store(false, Ordering::Relaxed);
     let seconds = began.elapsed().as_secs_f64();
-    let cpu1 = broker.cpu_seconds().unwrap_or(0.0);
+    let cpu1 = broker.cpu_seconds();
     stop.store(true, Ordering::Relaxed);
-    let metrics = broker.metrics_text().await;
+    // Without the broker's own histograms the targets inside it cannot be judged: say why.
+    let mut problems = Vec::new();
+    let metrics = broker.try_metrics_text().await.unwrap_or_else(|e| {
+        problems.push(format!("the broker's /metrics could not be read: {e:#}"));
+        String::new()
+    });
+    if rss_peak.is_none() || cpu0.is_none() || cpu1.is_none() {
+        problems.push("the broker's memory and CPU could not be read (neither /proc nor ps answered)".to_string());
+    }
     // Kept next to the broker's log, for a closer look at a run.
     let _ = std::fs::write(work.join("metrics.txt"), &metrics);
     for t in tasks {
@@ -410,7 +433,10 @@ async fn drive(
     result.seconds = seconds;
     result.operations = rec.stats(seconds);
     result.rss_peak_mb = rss_peak;
-    result.cpu_seconds = cpu1 - cpu0;
+    result.cpu_seconds = cpu0.zip(cpu1).map(|(a, b)| b - a);
+    if !problems.is_empty() {
+        result.error = Some(problems.join("; "));
+    }
     result.rebuild_p99_ms = histogram_quantile(&metrics, "broker_index_rebuild_seconds", 0.99).map(|s| s * 1000.0);
     result.server_discover_p99_ms = histogram_quantile(&metrics, "broker_discover_seconds", 0.99).map(|s| s * 1000.0);
     result.server_heartbeat_p99_ms =
@@ -438,7 +464,7 @@ fn evaluate(run: &LoadRun, r: &mut LoadResult) {
                     .sum(),
                 true,
             ),
-            "rss_mb" => (r.rss_peak_mb, true),
+            "rss_mb" => (r.rss_peak_mb.unwrap_or(f64::NAN), true),
             "rebuild_p99_ms" => (r.rebuild_p99_ms.unwrap_or(0.0), true),
             "server_discover_p99_ms" => (r.server_discover_p99_ms.unwrap_or(f64::NAN), true),
             "server_heartbeat_p99_ms" => (r.server_heartbeat_p99_ms.unwrap_or(f64::NAN), true),

@@ -14,7 +14,7 @@ Both drive the broker through the Rust client ([clients.md](clients.md)). Scenar
 | `make suite` | Every scenario against the release build. The report goes to `target/suite`. |
 | `make suite-load` | The load runs; `SCALE=0.2` runs them at a fifth of their size and length |
 | `make suite-one S=lifecycle` | The scenarios and load runs whose name contains `S` |
-| `cargo test -p pacod-broker --test scenarios` | Every scenario under cargo, against the binary that build made. `make verify` runs it with the other tests. `SCENARIO=<name>` runs one. |
+| `cargo test -p pacod-broker --test scenarios` | Every scenario under cargo, against the binary that build made. `make verify` runs it with the other tests. `SCENARIO=<name>` runs one. Its report goes to `target/tmp/scenarios`. |
 | `cargo run -p pacod-broker-suite -- --help` | The runner's options: `--broker`, `--only`, `--jobs`, `--scale`, `--out` |
 
 **How a run works:**
@@ -162,6 +162,10 @@ targets: { server_discover_p99_ms: 2, discover_per_second: 500, errors: 0 }
 | `rebuild_p99_ms` | Index rebuilds, from the broker's histogram |
 | `leases_expired` | Leases that ran out without a goodbye |
 | `stale_hits` | Results holding a lease that had run out more than a second before |
+
+**Open files.** Every provider and consumer of a run holds a connection, on the runner's side and on the broker's. The runner raises its open-file limit to the hard limit (macOS starts processes at 256), and the broker inherits it. When even the hard limit is too low, a run fails at once and says how far to raise it (`ulimit -n`), instead of measuring connections that never open.
+
+**Measured or not.** The broker's memory and CPU come from `/proc`, or from `ps` where there is none (macOS); its own latencies come from `/metrics`. When one of them cannot be read, the run fails and says which, and the report shows "not measured", never 0.
 
 **Over HTTP and inside.** The consumers and providers run on the machine the broker runs on and share its CPUs, and the consumers call again as soon as an answer arrives. Latency at the client is therefore mostly queueing: its mean is about the number of consumers divided by the throughput. The report shows it, but the latency targets are inside the broker, from its own histograms, which show what the broker itself takes. A full run belongs on a quiet machine; `SCALE=0.2` is a quick check.
 

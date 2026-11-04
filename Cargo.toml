@@ -44,6 +44,7 @@ http = "1"
 # Time zones for schedules and price windows. The database is bundled so that the distroless
 # image, which has no /usr/share/zoneinfo, resolves the same zones as a developer's machine.
 jiff = { version = "0.2", features = ["serde", "tzdb-bundle-always"] }
+libc = "0.2"
 metrics = "0.24"
 metrics-exporter-prometheus = { version = "0.18", default-features = false }
 mimalloc = { version = "0.1", default-features = false }
