@@ -1,6 +1,16 @@
 [package]
 name = "pacod-broker-reputation"
+description = "Reputation of providers, resources and clients: evidence, decayed aggregates, Bayesian scores with components and confidence, an evidence log and snapshots (docs/reputation.md)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+
+[dependencies]
+arc-swap.workspace = true
+jiff.workspace = true
+pacod-broker-model.workspace = true
+parking_lot.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true

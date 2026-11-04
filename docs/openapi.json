@@ -1,0 +1,5268 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "pacod-broker",
+    "version": "0.1.0",
+    "description": "Discovery of AI and compute resources, with prices and availability over time and reputation for providers and clients. The public API is on BROKER_LISTEN, the admin API (/api/v1) on BROKER_ADMIN_LISTEN.",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    }
+  },
+  "tags": [
+    {
+      "name": "providers"
+    },
+    {
+      "name": "discovery"
+    },
+    {
+      "name": "reputation"
+    },
+    {
+      "name": "mcp"
+    },
+    {
+      "name": "admin"
+    },
+    {
+      "name": "moderation"
+    }
+  ],
+  "paths": {
+    "/v1/announce": {
+      "put": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "Announce a provider's resources under a lease",
+        "operationId": "put_v1_announce",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announced"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Announcement"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/leases/{id}/heartbeat": {
+      "post": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "Keep a lease alive and report live status",
+        "operationId": "post_v1_leases_id_heartbeat",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Heartbeat"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "description": "Open mode: the provider name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/leases/{id}": {
+      "delete": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "End a lease cleanly",
+        "operationId": "delete_v1_leases_id",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "description": "Open mode: the provider name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/discover": {
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Discover resources",
+        "operationId": "post_v1_discover",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Query"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/resources": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Discover resources with query parameters",
+        "operationId": "get_v1_resources",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Words",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "protocol",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "required": false,
+            "description": "RFC 3339",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_unavailable",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/resources/{id}": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Read one resource",
+        "operationId": "get_v1_resources_id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/providers/{id}": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Read one provider",
+        "operationId": "get_v1_providers_id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/watch": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "Changes as server-sent events",
+        "operationId": "get_v1_watch",
+        "responses": {
+          "200": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "The generation the caller holds",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/reports/usage": {
+      "post": {
+        "tags": [
+          "reputation"
+        ],
+        "summary": "Report how calls went, with tickets",
+        "operationId": "post_v1_reports_usage",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Accepted"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageBatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/feedback": {
+      "post": {
+        "tags": [
+          "reputation"
+        ],
+        "summary": "Rate a resource, with a ticket",
+        "operationId": "post_v1_reports_feedback",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Accepted"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackReport"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/client": {
+      "post": {
+        "tags": [
+          "reputation"
+        ],
+        "summary": "A provider's report about a client",
+        "operationId": "post_v1_reports_client",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientReport"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tickets/verify": {
+      "post": {
+        "tags": [
+          "reputation"
+        ],
+        "summary": "Who presented a ticket (providers)",
+        "operationId": "post_v1_tickets_verify",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTicket"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reputation/me": {
+      "get": {
+        "tags": [
+          "reputation"
+        ],
+        "summary": "The caller's own reputation",
+        "operationId": "get_v1_reputation_me",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "MCP (streamable HTTP): discover_resources, describe_resource, describe_provider",
+        "operationId": "post_mcp",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Who the caller is and what they may do",
+        "operationId": "get_api_v1_session",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "The broker's state",
+        "operationId": "get_api_v1_status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "The effective configuration, without secrets",
+        "operationId": "get_api_v1_config",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resources": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Every resource",
+        "operationId": "get_api_v1_resources",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/resources/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "One resource with its lease and reputation evidence",
+        "operationId": "get_api_v1_resources_id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/providers": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Every provider",
+        "operationId": "get_api_v1_providers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderRow"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "One provider with its leases and reputation evidence",
+        "operationId": "get_api_v1_providers_id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/block": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Block a provider and end its leases",
+        "operationId": "post_api_v1_providers_id_block",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/unblock": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Unblock a provider",
+        "operationId": "post_api_v1_providers_id_unblock",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/approve": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Approve a waiting provider",
+        "operationId": "post_api_v1_providers_id_approve",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/verify": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Vouch for a provider, or stop",
+        "operationId": "post_api_v1_providers_id_verify",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/incident": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Record an upheld incident",
+        "operationId": "post_api_v1_providers_id_incident",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/pending": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Providers waiting for approval",
+        "operationId": "get_api_v1_pending",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pending"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leases": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Every lease",
+        "operationId": "get_api_v1_leases",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeaseInfo"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leases/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "End a lease",
+        "operationId": "delete_api_v1_leases_id",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/static": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Static entries",
+        "operationId": "get_api_v1_static",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaticProvider"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add or replace a provider's static entries",
+        "operationId": "put_api_v1_static",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announced"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaticProvider"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/static/{provider_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Remove a provider's static entries",
+        "operationId": "delete_api_v1_static_provider_id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reputation": {
+      "get": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Scores of one side",
+        "operationId": "get_api_v1_reputation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepRow"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "description": "resource, provider or client",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "score or confidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reputation/{side}/{id}": {
+      "get": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "A score and its evidence",
+        "operationId": "get_api_v1_reputation_side__id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "side",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reputation/{side}/{id}/{action}": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "freeze, unfreeze or reset a score",
+        "operationId": "post_api_v1_reputation_side__id__action",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "side",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reports": {
+      "get": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Client reports and notes",
+        "operationId": "get_api_v1_reports",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{id}/reject": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Take back an unfounded client report",
+        "operationId": "post_api_v1_reports_id_reject",
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Changes as server-sent events",
+        "operationId": "get_api_v1_events",
+        "responses": {
+          "200": {
+            "description": "Done"
+          },
+          "default": {
+            "description": "A problem",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Announcement": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ttl_s": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint64",
+            "minimum": 0,
+            "description": "Seconds the lease lasts without a heartbeat. The broker's default when absent.",
+            "default": null
+          },
+          "lease_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Replace the resources of this lease (after a provider restarts with its lease id kept);\notherwise a new lease is opened.",
+            "default": null
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderProfile"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceSpec"
+            },
+            "default": []
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "description": "What a provider sends to announce."
+      },
+      "ProviderProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A slug naming the provider. In `open` mode it also identifies the provider."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A display name, plain text. Defaults to the resource's name."
+          },
+          "summary": {
+            "type": "string",
+            "description": "One line of plain text, at most 200 characters.",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "description": "Markdown, at most `BROKER_MAX_DESCRIPTION_BYTES` (16 KiB by default)."
+          },
+          "documentation_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "description": "Usage snippets: how to call the resource."
+          },
+          "i18n": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Translation"
+            },
+            "description": "Translations, by BCP 47 language tag (`bg`, `de`, `pt-BR`)."
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contact": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How to reach a person: an email address or a URL."
+          },
+          "terms_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "privacy_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regions or ISO 3166 country codes the provider operates in."
+          },
+          "certifications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Certification"
+            }
+          },
+          "inventory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Inventory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "What a provider says about itself when it announces."
+      },
+      "Example": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The language of the snippet, for highlighting: `bash`, `python`, `json`, …"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "code"
+        ],
+        "description": "One usage snippet."
+      },
+      "Translation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "default": ""
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "description": "A translation of the summary and description."
+      },
+      "Certification": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "evidence_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assurance": {
+            "$ref": "#/components/schemas/Assurance",
+            "description": "Always `declared` today; `attested` is reserved for checked claims.",
+            "default": "declared"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "A certification the provider declares (ISO 27001, SOC 2, …)."
+      },
+      "Assurance": {
+        "type": "string",
+        "enum": [
+          "declared",
+          "attested"
+        ],
+        "description": "Whether anyone but the provider has checked a claim."
+      },
+      "Inventory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility",
+            "description": "Who may see the inventory. It never widens the provider's resources' visibility.",
+            "default": "platform"
+          },
+          "hardware": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HardwareItem"
+            }
+          },
+          "software": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SoftwareItem"
+            }
+          }
+        },
+        "description": "The hardware and software the provider runs on."
+      },
+      "Visibility": {
+        "type": "string",
+        "pattern": "^(public|platform|organisation:.+)$",
+        "examples": [
+          "public",
+          "platform",
+          "organisation:org_123"
+        ]
+      },
+      "HardwareItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A slug unique within the inventory, for resources to point at."
+          },
+          "type": {
+            "$ref": "#/components/schemas/HardwareType"
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The model as the vendor names it: `H100-SXM`, `MI300X`, `EPYC 9654`."
+          },
+          "count": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0,
+            "default": 1
+          },
+          "memory_gb": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Memory per unit, in GB: a GPU's memory, or the size of a memory or storage item."
+          },
+          "interconnect": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`nvlink`, `infiniband`, `pcie`, `ethernet-400g`, …"
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assurance": {
+            "$ref": "#/components/schemas/Assurance",
+            "default": "declared"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "description": "One kind of hardware, `count` of it."
+      },
+      "HardwareType": {
+        "type": "string",
+        "enum": [
+          "gpu",
+          "cpu",
+          "tpu",
+          "npu",
+          "accelerator",
+          "memory",
+          "storage",
+          "network"
+        ]
+      },
+      "SoftwareItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A slug unique within the inventory, for resources to point at."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SoftwareKind"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name, lower case: `cuda`, `vllm`, `pytorch`, `onnxruntime`, `ubuntu`."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A version; semantic versions (`0.7.3`, `12.6`) can be filtered with ranges."
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assurance": {
+            "$ref": "#/components/schemas/Assurance",
+            "default": "declared"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name"
+        ],
+        "description": "One piece of software."
+      },
+      "SoftwareKind": {
+        "type": "string",
+        "enum": [
+          "os",
+          "driver",
+          "runtime",
+          "framework",
+          "library",
+          "serving_engine",
+          "model_format",
+          "other"
+        ]
+      },
+      "ResourceSpec": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The provider's own key for the resource, a slug unique among its resources. The\nresource's id is derived from it, so it stays the same across announcements."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`model`, `mcp_server`, `agent`, `tool`, `compute`, `embedding`, `dataset`, or\n`other:<slug>`."
+          },
+          "name": {
+            "type": "string",
+            "description": "A slug naming what is served: the model id, the server's name."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A display name, plain text. Defaults to the resource's name."
+          },
+          "summary": {
+            "type": "string",
+            "description": "One line of plain text, at most 200 characters.",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "description": "Markdown, at most `BROKER_MAX_DESCRIPTION_BYTES` (16 KiB by default)."
+          },
+          "documentation_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "description": "Usage snippets: how to call the resource."
+          },
+          "i18n": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Translation"
+            },
+            "description": "Translations, by BCP 47 language tag (`bg`, `de`, `pt-BR`)."
+          },
+          "interfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Interface"
+            },
+            "default": []
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities",
+            "default": {}
+          },
+          "runs_on": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunsOn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability",
+            "default": {
+              "status": "active"
+            }
+          },
+          "policy": {
+            "$ref": "#/components/schemas/Policy",
+            "default": {}
+          },
+          "access": {
+            "$ref": "#/components/schemas/Access",
+            "default": {
+              "visibility": "platform",
+              "allow_new_clients": false
+            }
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "name"
+        ],
+        "description": "What a provider announces for one resource."
+      },
+      "Interface": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/Auth",
+            "default": {
+              "scheme": "none"
+            }
+          },
+          "spec_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A machine-readable description: an OpenAPI document, an A2A agent card."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "protocol",
+          "url"
+        ],
+        "description": "How to call the resource."
+      },
+      "Auth": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scheme": {
+            "$ref": "#/components/schemas/AuthScheme",
+            "default": "none"
+          },
+          "obtain_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where to get credentials: a sign-up page, a token endpoint."
+          }
+        }
+      },
+      "AuthScheme": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "api_key",
+              "oauth2"
+            ]
+          },
+          {
+            "type": "string",
+            "const": "pacod_id",
+            "description": "A pacod-id token: the caller's own, or a service account's."
+          }
+        ]
+      },
+      "ModelInfo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`claude`, `gpt`, `llama`, `qwen`, …"
+          },
+          "upstream_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The id the upstream provider uses."
+          },
+          "context_window": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_output_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint64",
+            "minimum": 0
+          },
+          "modalities": {
+            "$ref": "#/components/schemas/Modalities",
+            "default": {}
+          },
+          "quantisation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`fp16`, `fp8`, `int4`, `q4_k_m`, …"
+          },
+          "parameters_b": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Parameters, in billions."
+          }
+        }
+      },
+      "Modalities": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "input": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`text`, `image`, `audio`, `video`, `file`."
+          },
+          "output": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Capabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tools": {
+            "type": "boolean"
+          },
+          "vision": {
+            "type": "boolean"
+          },
+          "reasoning": {
+            "type": "boolean"
+          },
+          "structured_output": {
+            "type": "boolean"
+          },
+          "streaming": {
+            "type": "boolean"
+          },
+          "prompt_cache": {
+            "type": "boolean"
+          },
+          "embeddings": {
+            "type": "boolean"
+          },
+          "mcp_tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpTool"
+            },
+            "description": "For MCP servers: the tools they offer."
+          },
+          "mcp_protocol_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accelerator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For compute: the accelerator, its memory and how many."
+          },
+          "memory_gb": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Anything else, by name."
+          }
+        }
+      },
+      "McpTool": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "RunsOn": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hardware": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "software": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "The inventory items a resource runs on, by their ids in the provider's inventory."
+      },
+      "Pricing": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217, upper case: `EUR`, `USD`.",
+            "default": "USD"
+          },
+          "free": {
+            "type": "boolean",
+            "description": "The resource costs nothing. Then no period is needed."
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/TimeZone",
+            "description": "The zone the windows' times are in.",
+            "default": "UTC"
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricePeriod"
+            },
+            "default": []
+          }
+        },
+        "description": "The prices of a resource."
+      },
+      "TimeZone": {
+        "type": "string",
+        "description": "An IANA time zone name, such as Europe/Sofia or UTC.",
+        "examples": [
+          "UTC",
+          "Europe/Sofia"
+        ]
+      },
+      "PricePeriod": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valid_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Open when absent: valid until the next period starts."
+          },
+          "rates": {
+            "$ref": "#/components/schemas/Rates"
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceWindow"
+            }
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceOverride"
+            }
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tier"
+            }
+          },
+          "commitments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Commitment"
+            }
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "valid_from",
+          "rates"
+        ],
+        "description": "One price-sheet version."
+      },
+      "Rates": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "input": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "output": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_read": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "cache_write": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "reasoning": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_request": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_call": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Per tool or MCP call."
+          },
+          "per_image": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_audio_second": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_second": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_hour": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "per_gpu_hour": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "Rates, each optional. Token rates are per million tokens; the others per unit named."
+      },
+      "PriceWindow": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A slug: `off-peak`, `weekend`."
+          },
+          "weekdays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Weekday"
+            },
+            "description": "The days the window starts on; empty means every day."
+          },
+          "from_time": {
+            "$ref": "#/components/schemas/TimeOfDay"
+          },
+          "to_time": {
+            "$ref": "#/components/schemas/TimeOfDay"
+          },
+          "rates": {
+            "$ref": "#/components/schemas/Rates"
+          }
+        },
+        "required": [
+          "name",
+          "from_time",
+          "to_time",
+          "rates"
+        ],
+        "description": "A recurring variant within a period."
+      },
+      "Weekday": {
+        "type": "string",
+        "enum": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ],
+        "description": "A day of the week."
+      },
+      "TimeOfDay": {
+        "type": "string",
+        "pattern": "^([01][0-9]|2[0-4]):[0-5][0-9](:[0-5][0-9])?$",
+        "examples": [
+          "22:00",
+          "06:30"
+        ]
+      },
+      "PriceOverride": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rates": {
+            "$ref": "#/components/schemas/Rates"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "rates"
+        ],
+        "description": "A one-off price for an absolute span."
+      },
+      "Tier": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "above": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/TierUnit"
+          },
+          "rates": {
+            "$ref": "#/components/schemas/Rates"
+          }
+        },
+        "required": [
+          "above",
+          "unit",
+          "rates"
+        ],
+        "description": "A volume price: the rates for usage above `above` units within `per` (a month by default)."
+      },
+      "TierUnit": {
+        "type": "string",
+        "enum": [
+          "input_tokens",
+          "output_tokens",
+          "requests",
+          "hours"
+        ]
+      },
+      "Commitment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "min_hours": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "rates": {
+            "$ref": "#/components/schemas/Rates"
+          }
+        },
+        "required": [
+          "min_hours",
+          "rates"
+        ],
+        "description": "A reserved price for a commitment of at least `min_hours`."
+      },
+      "Availability": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LiveStatus",
+            "description": "The status when announced. Heartbeats change it without a new announcement.",
+            "default": "active"
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regions the resource is served from (slugs: `eu-central`, `bg`, `us-east-1`)."
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Capacity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Latency"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Declared latency. What callers observe goes into reputation, not here."
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Schedule"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LiveStatus": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "active",
+              "maintenance"
+            ]
+          },
+          {
+            "type": "string",
+            "const": "degraded",
+            "description": "Usable, but slower or less reliable than usual."
+          },
+          {
+            "type": "string",
+            "const": "draining",
+            "description": "Finishing what runs, taking nothing new."
+          }
+        ]
+      },
+      "Capacity": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "max_concurrency": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0,
+            "description": "Concurrent requests, sessions or units the resource can take."
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What one unit is: `requests`, `sessions`, `gpus`. Requests by default."
+          }
+        }
+      },
+      "Latency": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ttft_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Time to the first token or byte, in milliseconds."
+          },
+          "ms_per_token": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Milliseconds per output token after the first."
+          }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "timezone": {
+            "$ref": "#/components/schemas/TimeZone",
+            "default": "UTC"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Rule"
+            }
+          },
+          "maintenance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Maintenance"
+            }
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            }
+          }
+        }
+      },
+      "Rule": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weekdays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Weekday"
+            },
+            "description": "The days the window starts on; empty means every day."
+          },
+          "from_time": {
+            "$ref": "#/components/schemas/TimeOfDay"
+          },
+          "to_time": {
+            "$ref": "#/components/schemas/TimeOfDay"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RuleState",
+            "default": "available"
+          },
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "from_time",
+          "to_time"
+        ],
+        "description": "Opening hours: on these weekdays, between these times, the resource is available (with an\noptional capacity) or not."
+      },
+      "RuleState": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable"
+        ]
+      },
+      "Maintenance": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "announced_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the broker first saw this window. Set by the broker; reputation counts maintenance\nannounced well ahead as planned, not as an outage."
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "description": "A planned outage."
+      },
+      "Slot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "capacity": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "state": {
+            "$ref": "#/components/schemas/SlotState",
+            "default": "available"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "capacity"
+        ],
+        "description": "Bookable capacity for an absolute span."
+      },
+      "SlotState": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "available",
+              "reserved"
+            ]
+          },
+          {
+            "type": "string",
+            "const": "tentative",
+            "description": "Probably available; the provider has not confirmed it."
+          }
+        ]
+      },
+      "Policy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data_retention": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`none`, `transient`, `30d`, … as the provider states it."
+          },
+          "training_use": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether inputs may be used to train models."
+          },
+          "residency": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Where the data is processed: regions or ISO 3166 codes (`eu`, `bg`)."
+          },
+          "classification": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The highest data classification the resource accepts: `public`, `internal`,\n`confidential`, `restricted`."
+          }
+        },
+        "description": "What happens to the data sent to the resource."
+      },
+      "Access": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility",
+            "default": "platform"
+          },
+          "min_client_reputation": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Clients with a lower reputation do not see the resource."
+          },
+          "allow_new_clients": {
+            "type": "boolean",
+            "description": "Clients still too new to have a reputation (confidence below 0.3) see it anyway.",
+            "default": true
+          }
+        },
+        "description": "Who may see the resource."
+      },
+      "Announced": {
+        "type": "object",
+        "properties": {
+          "lease_id": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "heartbeat_every_s": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0,
+            "description": "When to send the next heartbeat: a third of the lease."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The id of each resource, by key."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "lease_id",
+          "provider_id",
+          "ttl_s",
+          "heartbeat_every_s",
+          "expires_at",
+          "resources",
+          "warnings"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "A stable code: `invalid`, `not_found`, `forbidden`, `identity_unavailable`, …"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "For `invalid`: every problem found, each `path: message`."
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "errors"
+        ]
+      },
+      "Heartbeat": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "in_use": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0,
+            "default": null
+          },
+          "ttft_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HeartbeatOne"
+            },
+            "description": "Per resource, by key: the same fields for one resource."
+          }
+        },
+        "description": "What a heartbeat may carry."
+      },
+      "HeartbeatOne": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "in_use": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0,
+            "default": null
+          },
+          "ttft_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          }
+        }
+      },
+      "Query": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The kind. Needed when sorting by price, latency or reputation: those only compare within\none kind."
+          },
+          "q": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Words to search for in names, titles, summaries, descriptions and tags."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "All of these tags."
+          },
+          "protocols": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "At least one of these protocols."
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "All of these capabilities: `tools`, `vision`, `reasoning`, `structured_output`,\n`streaming`, `prompt_cache`, `embeddings`, `mcp_tool:<name>`, `extra:<key>`."
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Served from at least one of these regions."
+          },
+          "residency": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Data processed only in these places: every place the resource lists must be one of them."
+          },
+          "no_training_use": {
+            "type": "boolean",
+            "description": "Inputs never used for training."
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelQuery"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_price": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "The highest acceptable value of each rate, by rate name (`input`, `per_gpu_hour`, …), at\n`at`, or as the time-weighted mean over `during`."
+          },
+          "include_unpriced": {
+            "type": "boolean",
+            "description": "Keep resources that have no price for a rate `max_price` names. Off by default."
+          },
+          "at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The instant prices and availability are evaluated at; now by default."
+          },
+          "during": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Span"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A span to evaluate prices and availability over, instead of an instant."
+          },
+          "availability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AvailabilityQuery"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "include_unavailable": {
+            "type": "boolean",
+            "description": "Also return resources that are not available at `at` (or during `during`)."
+          },
+          "hardware": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HardwareQuery"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "software": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SoftwareQuery"
+            }
+          },
+          "min_reputation": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The lowest acceptable reputation score of the resource, 0 to 1."
+          },
+          "min_confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "With `min_reputation`: the lowest confidence. Resources with less evidence are left out\nunless this is 0."
+          },
+          "sort": {
+            "$ref": "#/components/schemas/Sort",
+            "default": "default"
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint",
+            "minimum": 0,
+            "description": "20 by default, at most 200."
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "What a consumer asks for."
+      },
+      "ModelQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "min_context_window": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint64",
+            "minimum": 0
+          },
+          "min_output_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint64",
+            "minimum": 0
+          },
+          "input": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "All of these input modalities."
+          },
+          "output": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "quantisation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Span": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "description": "An absolute span of time, `from` inclusive, `to` exclusive."
+      },
+      "AvailabilityQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "min_capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0,
+            "description": "The capacity needed (in the resource's unit). Without it any capacity will do."
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage",
+            "description": "Over a span: available all of it (`full`, the default) or some of it (`any`).",
+            "default": "full"
+          },
+          "exclude_degraded": {
+            "type": "boolean",
+            "description": "Leave out resources whose live status is `degraded`."
+          }
+        }
+      },
+      "Coverage": {
+        "type": "string",
+        "enum": [
+          "full",
+          "any"
+        ]
+      },
+      "HardwareQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "gpu_model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A GPU model, as the provider names it, any case: `H100-SXM`, `MI300X`."
+          },
+          "min_gpu_memory_gb": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "min_gpus": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0,
+            "description": "The number of GPUs of one item (one machine type), at least."
+          },
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HardwareType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Some item of this type."
+          },
+          "min_memory_gb": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Some memory item of at least this size, in GB."
+          }
+        }
+      },
+      "SoftwareQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A semantic version requirement: `>=0.7`, `^12`, `=2.6.0`."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "Sort": {
+        "type": "string",
+        "pattern": "^(default|relevance|name|ttft|reputation|price:[a-z_]+)$",
+        "examples": [
+          "price:input",
+          "reputation"
+        ]
+      },
+      "DiscoverResponse": {
+        "type": "object",
+        "properties": {
+          "generation": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "during": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Span"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HitView"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "generation",
+          "at",
+          "total",
+          "hits"
+        ]
+      },
+      "HitView": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "$ref": "#/components/schemas/ResourceRecord"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "id": {
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EffectivePrice"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The price at `at`, when the query asked for an instant."
+          },
+          "price_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriceSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The prices over `during`, when the query asked for a span."
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0
+          },
+          "availability_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AvailabilitySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "live": {
+            "$ref": "#/components/schemas/LiveView"
+          },
+          "reputation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reputation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_reputation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reputation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "why": {
+            "$ref": "#/components/schemas/Why",
+            "description": "Why it matched and what it was ranked by."
+          },
+          "ticket": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Proof that this client was shown this resource now: quote it in usage reports and ratings."
+          }
+        },
+        "required": [
+          "resource",
+          "provider",
+          "id",
+          "available",
+          "live",
+          "why"
+        ],
+        "description": "One discovery result."
+      },
+      "ResourceRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "The provider's own key for the resource, a slug unique among its resources. The\nresource's id is derived from it, so it stays the same across announcements."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`model`, `mcp_server`, `agent`, `tool`, `compute`, `embedding`, `dataset`, or\n`other:<slug>`."
+          },
+          "name": {
+            "type": "string",
+            "description": "A slug naming what is served: the model id, the server's name."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A display name, plain text. Defaults to the resource's name."
+          },
+          "summary": {
+            "type": "string",
+            "description": "One line of plain text, at most 200 characters.",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "description": "Markdown, at most `BROKER_MAX_DESCRIPTION_BYTES` (16 KiB by default)."
+          },
+          "documentation_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "description": "Usage snippets: how to call the resource."
+          },
+          "i18n": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Translation"
+            },
+            "description": "Translations, by BCP 47 language tag (`bg`, `de`, `pt-BR`)."
+          },
+          "interfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Interface"
+            },
+            "default": []
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities",
+            "default": {}
+          },
+          "runs_on": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunsOn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability",
+            "default": {
+              "status": "active"
+            }
+          },
+          "policy": {
+            "$ref": "#/components/schemas/Policy",
+            "default": {}
+          },
+          "access": {
+            "$ref": "#/components/schemas/Access",
+            "default": {
+              "visibility": "platform",
+              "allow_new_clients": false
+            }
+          },
+          "origin": {
+            "type": "string",
+            "description": "The broker the record was announced on."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "lease_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "provider_id",
+          "key",
+          "kind",
+          "name",
+          "origin",
+          "source",
+          "registered_at",
+          "updated_at"
+        ],
+        "description": "A resource as the broker holds it."
+      },
+      "Source": {
+        "oneOf": [
+          {
+            "type": "string",
+            "const": "lease",
+            "description": "Announced by a provider under a lease: soft state."
+          },
+          {
+            "type": "string",
+            "const": "static",
+            "description": "From the catalogue file or the admin API: kept across restarts."
+          },
+          {
+            "type": "string",
+            "const": "import",
+            "description": "Imported from another description (reserved)."
+          }
+        ],
+        "description": "Where a record came from."
+      },
+      "ProviderSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "summary",
+          "verified"
+        ],
+        "description": "A provider, briefly, as it appears with each resource."
+      },
+      "EffectivePrice": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "free": {
+            "type": "boolean"
+          },
+          "rates": {
+            "$ref": "#/components/schemas/Rates"
+          },
+          "source": {
+            "type": "string",
+            "description": "`base`, `window:<name>` or `override`."
+          },
+          "period_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "period_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tier"
+            }
+          },
+          "commitments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Commitment"
+            }
+          }
+        },
+        "required": [
+          "at",
+          "currency",
+          "free",
+          "rates",
+          "source",
+          "tiers",
+          "commitments"
+        ],
+        "description": "The price in effect at one instant."
+      },
+      "PriceSummary": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "free": {
+            "type": "boolean"
+          },
+          "rates": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RateRange"
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceChange"
+            },
+            "description": "The instants at which the effective price changes, with the source from then on."
+          },
+          "unpriced_share": {
+            "type": "number",
+            "format": "double",
+            "description": "The share of the span with no price at all (before the first period, between periods)."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "currency",
+          "free",
+          "rates",
+          "changes",
+          "unpriced_share"
+        ],
+        "description": "The prices over a span: each rate's lowest, highest and time-weighted mean, and when they\nchange."
+      },
+      "RateRange": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          },
+          "avg": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "avg"
+        ]
+      },
+      "PriceChange": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "source"
+        ]
+      },
+      "AvailabilitySummary": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available_share": {
+            "type": "number",
+            "format": "double",
+            "description": "The share of the span with at least the capacity asked (any capacity when none was asked)."
+          },
+          "min_capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0,
+            "description": "The lowest capacity over the span; absent when the resource declares none."
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailableWindow"
+            },
+            "description": "The spans in which the resource is available, merged, with their lowest capacity."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "available_share",
+          "windows"
+        ],
+        "description": "Availability over a span."
+      },
+      "AvailableWindow": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ]
+      },
+      "LiveView": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/LiveStatus"
+          },
+          "in_use": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0
+          },
+          "ttft_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_seen": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "description": "A copy of the live cell at one moment."
+      },
+      "Reputation": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "format": "double",
+            "description": "The composite, 0 to 1."
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double",
+            "description": "0 to 1: how much evidence there is. Below 0.3 the subject is `new`."
+          },
+          "label": {
+            "$ref": "#/components/schemas/Label"
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Component"
+            },
+            "description": "Each component by its id (`availability`, `reliability`, …)."
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "frozen": {
+            "type": "boolean",
+            "description": "An admin froze the score while looking into it; it does not change until unfrozen."
+          }
+        },
+        "required": [
+          "score",
+          "confidence",
+          "label",
+          "components",
+          "computed_at"
+        ]
+      },
+      "Label": {
+        "type": "string",
+        "enum": [
+          "new",
+          "low",
+          "fair",
+          "good",
+          "excellent"
+        ]
+      },
+      "Component": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "format": "double"
+          },
+          "weight": {
+            "type": "number",
+            "format": "double",
+            "description": "The weight it has in the composite."
+          },
+          "samples": {
+            "type": "number",
+            "format": "double",
+            "description": "Evidence counted, after decay (so fractional)."
+          }
+        },
+        "required": [
+          "score",
+          "weight",
+          "samples"
+        ]
+      },
+      "Why": {
+        "type": "object",
+        "properties": {
+          "matched": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The filters the resource passed, in words."
+          },
+          "sorted_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The sort key and its value."
+          },
+          "sort_value": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "relevance": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          }
+        },
+        "required": [
+          "matched"
+        ]
+      },
+      "ResourceView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "The provider's own key for the resource, a slug unique among its resources. The\nresource's id is derived from it, so it stays the same across announcements."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`model`, `mcp_server`, `agent`, `tool`, `compute`, `embedding`, `dataset`, or\n`other:<slug>`."
+          },
+          "name": {
+            "type": "string",
+            "description": "A slug naming what is served: the model id, the server's name."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A display name, plain text. Defaults to the resource's name."
+          },
+          "summary": {
+            "type": "string",
+            "description": "One line of plain text, at most 200 characters.",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "description": "Markdown, at most `BROKER_MAX_DESCRIPTION_BYTES` (16 KiB by default)."
+          },
+          "documentation_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "description": "Usage snippets: how to call the resource."
+          },
+          "i18n": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Translation"
+            },
+            "description": "Translations, by BCP 47 language tag (`bg`, `de`, `pt-BR`)."
+          },
+          "interfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Interface"
+            },
+            "default": []
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities",
+            "default": {}
+          },
+          "runs_on": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunsOn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pricing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability",
+            "default": {
+              "status": "active"
+            }
+          },
+          "policy": {
+            "$ref": "#/components/schemas/Policy",
+            "default": {}
+          },
+          "access": {
+            "$ref": "#/components/schemas/Access",
+            "default": {
+              "visibility": "platform",
+              "allow_new_clients": false
+            }
+          },
+          "origin": {
+            "type": "string",
+            "description": "The broker the record was announced on."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "lease_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "live": {
+            "$ref": "#/components/schemas/LiveView"
+          },
+          "price_now": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EffectivePrice"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The price now."
+          },
+          "available_now": {
+            "type": "boolean"
+          },
+          "capacity_now": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "uint32",
+            "minimum": 0
+          },
+          "reputation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reputation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_reputation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reputation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ticket": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "provider_id",
+          "key",
+          "kind",
+          "name",
+          "origin",
+          "source",
+          "registered_at",
+          "updated_at",
+          "provider",
+          "live",
+          "available_now"
+        ],
+        "description": "One resource, read on its own."
+      },
+      "ProviderView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organisation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProviderProfile",
+            "description": "The profile; the inventory only when the caller may see it."
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reputation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reputation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceBrief"
+            },
+            "description": "The provider's resources the caller may see: id, kind, name, summary."
+          }
+        },
+        "required": [
+          "id",
+          "verified",
+          "source",
+          "profile",
+          "registered_at",
+          "updated_at",
+          "resources"
+        ],
+        "description": "A provider, read on its own."
+      },
+      "ResourceBrief": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "kind",
+          "name",
+          "summary"
+        ]
+      },
+      "UsageBatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageReport"
+            }
+          }
+        },
+        "required": [
+          "reports"
+        ]
+      },
+      "UsageReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ticket": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "ttft_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          },
+          "ms_per_token": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "default": null
+          },
+          "price_charged": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "What was charged for one unit of `rate` (per million tokens for token rates).",
+            "default": null
+          },
+          "rate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rate `price_charged` is for: `input`, `per_request`, …",
+            "default": null
+          },
+          "at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the call was made; now by default.",
+            "default": null
+          }
+        },
+        "required": [
+          "ticket",
+          "outcome"
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "ok",
+              "server_error",
+              "timeout",
+              "rate_limited"
+            ]
+          },
+          {
+            "type": "string",
+            "const": "client_error",
+            "description": "The caller's own mistake: does not count against the resource."
+          },
+          {
+            "type": "string",
+            "const": "refused",
+            "description": "Refused although the resource said it had capacity."
+          }
+        ],
+        "description": "How a call ended, as the caller reports it."
+      },
+      "Accepted": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "description": "Reports that did not count, by their position, with the reason."
+          }
+        },
+        "required": [
+          "accepted",
+          "refused"
+        ]
+      },
+      "FeedbackReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ticket": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0,
+            "maximum": 255,
+            "description": "1 (poor) to 5 (excellent)."
+          },
+          "comment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Kept for admins only, never shown to other callers.",
+            "default": null
+          }
+        },
+        "required": [
+          "ticket",
+          "rating"
+        ]
+      },
+      "ClientReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "description": "The ticket the client presented to the provider."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ClientReportKind"
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "ticket",
+          "kind"
+        ]
+      },
+      "ClientReportKind": {
+        "type": "string",
+        "enum": [
+          "abuse",
+          "policy_violation",
+          "non_payment",
+          "no_show",
+          "late_cancel",
+          "good_standing"
+        ],
+        "description": "What a provider reports about a client."
+      },
+      "VerifyTicket": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ticket": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "sub": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organisation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "broker_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "permissions",
+          "broker_id",
+          "version"
+        ]
+      },
+      "Status": {
+        "type": "object",
+        "properties": {
+          "broker_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uptime_s": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "generation": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "index_built_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "resources": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "providers": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "leases": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "pending": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "blocked": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "by_kind": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "by_status": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "reputation_computed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "clients_rated": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "auth": {
+            "type": "string"
+          },
+          "identity_ready": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "state_dir": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "broker_id",
+          "version",
+          "started_at",
+          "uptime_s",
+          "generation",
+          "resources",
+          "providers",
+          "leases",
+          "pending",
+          "blocked",
+          "by_kind",
+          "by_status",
+          "clients_rated",
+          "auth",
+          "state_dir"
+        ]
+      },
+      "ProviderRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "organisation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "resources": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "leases": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "has_inventory": {
+            "type": "boolean"
+          },
+          "reputation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reputation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "summary",
+          "verified",
+          "principal",
+          "source",
+          "resources",
+          "leases",
+          "blocked",
+          "has_inventory",
+          "updated_at"
+        ],
+        "description": "A provider, briefly, as it appears with each resource."
+      },
+      "VerifyBody": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verified"
+        ]
+      },
+      "IncidentBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "note"
+        ]
+      },
+      "Pending": {
+        "type": "object",
+        "properties": {
+          "provider_id": {
+            "type": "string"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "organisation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProviderProfile"
+          },
+          "resources": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "first_seen": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "provider_id",
+          "principal",
+          "profile",
+          "resources",
+          "first_seen"
+        ],
+        "description": "A provider waiting for approval, with what it tried to announce."
+      },
+      "LeaseInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "ttl_s": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_heartbeat": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "provider_id",
+          "principal",
+          "ttl_s",
+          "created_at",
+          "expires_at",
+          "last_heartbeat",
+          "resources"
+        ],
+        "description": "A lease and what it covers."
+      },
+      "StaticProvider": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "principal": {
+            "type": "string",
+            "description": "Who the entries belong to; `static:<provider name>` by default.",
+            "default": ""
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "Whether the broker vouches for the provider.",
+            "default": false
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderProfile"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceSpec"
+            },
+            "default": []
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "description": "A provider and its resources as a catalogue file or the state directory holds them."
+      },
+      "RepRow": {
+        "type": "object",
+        "properties": {
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reputation": {
+            "$ref": "#/components/schemas/Reputation"
+          }
+        },
+        "required": [
+          "side",
+          "id",
+          "reputation"
+        ]
+      },
+      "Side": {
+        "type": "string",
+        "enum": [
+          "resource",
+          "provider",
+          "client"
+        ],
+        "description": "The side of a score: providers and their resources are rated as sellers, clients as buyers."
+      },
+      "ReportRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "client": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ClientReportKind"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "client",
+          "kind",
+          "at"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A pacod-id access token or service-account token (pidt_…); in open mode BROKER_ADMIN_TOKEN for the admin API"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
+}

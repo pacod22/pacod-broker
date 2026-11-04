@@ -1,0 +1,54 @@
+# pacod-broker's roles and permissions, for pacod-id's rules engine (docs/concept.md §5).
+#
+# The broker reads this file at build time (crates/pacod-broker/src/identity.rs) and pushes it
+# to pacod-id at every start; the console generates ui/src/lib/authz.generated.ts from it
+# (`make authz`). The vectors next to it (authz/vectors/) pin what each role may do.
+#
+# Permissions:
+#   resources.discover    search and read the catalogue
+#   resources.announce    announce resources under a lease (providers)
+#   reports.usage         report how calls went, with an interaction ticket (consumers, gateways)
+#   reports.feedback      rate a resource, with an interaction ticket
+#   reports.client        report about a client (providers)
+#   broker.read           see everything the admin API shows
+#   broker.manage         static entries, leases, approval, blocking
+#   reputation.moderate   uphold or reject reports, freeze and reset scores
+#   members.manage        give and take roles inside an organisation
+product: broker
+roles:
+  admin:
+    at: [platform]
+    permissions: ["*"]
+    # Nobody removes the last broker admin.
+    protected: true
+  operator:
+    at: [platform]
+    permissions: [broker.read, broker.manage, resources.discover, reputation.moderate]
+  moderator:
+    at: [platform]
+    permissions: [broker.read, reputation.moderate, resources.discover]
+  viewer:
+    at: [platform]
+    permissions: [broker.read, resources.discover]
+  provider:
+    at: [platform, organisation]
+    permissions: [resources.announce, resources.discover, reports.client]
+  consumer:
+    at: [platform, organisation]
+    permissions: [resources.discover, reports.usage, reports.feedback]
+  # Every person signed in may search and rate what they used.
+  member:
+    at: [platform]
+    permissions: [resources.discover, reports.usage, reports.feedback]
+    implicit: true
+  org_admin:
+    at: [organisation]
+    permissions: [members.manage, resources.announce, resources.discover, reports.usage, reports.feedback, reports.client]
+grant:
+  # Organisation admins give roles inside their organisation; only a broker admin gives
+  # platform roles.
+  default: members.manage
+  admin: broker.manage
+  operator: broker.manage
+  moderator: broker.manage
+  viewer: broker.manage
