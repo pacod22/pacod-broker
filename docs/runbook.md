@@ -39,7 +39,7 @@ The console's settings are listed in [ui/src/env.ts](../ui/src/env.ts) and [ui/.
 2. **Set the broker's variables:**
    - `BROKER_AUTH=oidc`;
    - `BROKER_ID_ISSUER`;
-   - `BROKER_ID_INTERNAL_URL=http://pacod-id-internal:8071`;
+   - `BROKER_ID_INTERNAL_URL`, only where pacod-id's internal listener is not the usual `http://pacod-id-internal:8071` (the default);
    - `BROKER_ID_CLIENT_SECRET`.
 
    The broker pushes `authz/broker.yaml` to pacod-id at start.

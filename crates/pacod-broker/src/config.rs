@@ -13,6 +13,9 @@ use std::time::Duration;
 
 use crate::env::Vars;
 
+/// pacod-id's internal listener, the same address in every pacod stack.
+pub const DEFAULT_ID_INTERNAL_URL: &str = "http://pacod-id-internal:8071";
+
 /// A secret value: never printed.
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Secret(String);
@@ -337,11 +340,9 @@ pub fn read(vars: &Vars) -> Result<Config, Errors> {
         if issuers.is_empty() {
             r.errors.push("BROKER_ID_ISSUER: needed with BROKER_AUTH=oidc".into());
         }
-        let internal_url = r.optional("BROKER_ID_INTERNAL_URL").unwrap_or_else(|| {
-            r.errors
-                .push("BROKER_ID_INTERNAL_URL: needed with BROKER_AUTH=oidc (http://pacod-id-internal:8071)".into());
-            String::new()
-        });
+        // pacod-id's internal listener has this one alias on pacod-admin-net in every pacod stack
+        // (pacod-demo/docs/NETWORK.md), so a stack on one machine needs no setting for it.
+        let internal_url = r.string("BROKER_ID_INTERNAL_URL", DEFAULT_ID_INTERNAL_URL);
         let client_secret = r.secret("BROKER_ID_CLIENT_SECRET").unwrap_or_else(|| {
             r.errors.push("BROKER_ID_CLIENT_SECRET: needed with BROKER_AUTH=oidc".into());
             Secret::default()
@@ -540,6 +541,24 @@ mod tests {
         ] {
             assert!(e.contains(want), "{want} missing in {e}");
         }
+    }
+
+    #[test]
+    fn oidc_takes_pacod_ids_internal_alias_by_default() {
+        let v = Vars::from_pairs([
+            ("BROKER_AUTH", "oidc"),
+            ("BROKER_ID_ISSUER", "https://id.example.com"),
+            ("BROKER_ID_CLIENT_SECRET", "0123456789abcdef0123456789abcdef"),
+        ]);
+        let c = read(&v).unwrap();
+        assert_eq!(c.id_settings.as_ref().unwrap().internal_url, "http://pacod-id-internal:8071");
+        let v = Vars::from_pairs([
+            ("BROKER_AUTH", "oidc"),
+            ("BROKER_ID_ISSUER", "https://id.example.com"),
+            ("BROKER_ID_INTERNAL_URL", "http://id-internal.test:9071"),
+            ("BROKER_ID_CLIENT_SECRET", "0123456789abcdef0123456789abcdef"),
+        ]);
+        assert_eq!(read(&v).unwrap().id_settings.unwrap().internal_url, "http://id-internal.test:9071");
     }
 
     #[test]
