@@ -45,6 +45,14 @@ services:
   pacod-broker:
     <<: *locked-down
     image: ${BROKER_REGISTRY:-}pacod-broker:${BROKER_VERSION:-0.1.0}
+    # Built from this checkout when the image is missing, so a stack that includes only this file
+    # (pacod-demo) starts without `make images` or a registry.
+    build:
+      context: ..
+      dockerfile: deploy/docker/rust.Dockerfile
+      target: broker
+      args:
+        VERSION: ${BROKER_VERSION:-0.1.0}
     container_name: pacod-broker
     command: ["serve"]
     env_file:
@@ -74,6 +82,12 @@ services:
   broker-console:
     <<: *locked-down
     image: ${BROKER_REGISTRY:-}pacod-broker-console:${BROKER_VERSION:-0.1.0}
+    build:
+      context: ..
+      dockerfile: deploy/docker/ui.Dockerfile
+      target: ui
+      args:
+        VERSION: ${BROKER_VERSION:-0.1.0}
     container_name: broker-console
     environment:
       SERVICE_NAME: broker-console

@@ -1,5 +1,5 @@
-# Development override: builds the images from the working tree, publishes the ports on this
-# machine only and loads the example catalogue.
+# Development override: publishes the ports on this machine only and loads the example catalogue.
+# The images come from the app file's build, from the working tree (`--build` rebuilds them).
 #
 #   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml up -d --build --wait
 #
@@ -7,7 +7,6 @@
 # http://127.0.0.1:19160, console http://127.0.0.1:13100.
 services:
   pacod-broker:
-    build: { context: .., dockerfile: deploy/docker/rust.Dockerfile, target: broker }
     environment:
       # A published port never reaches an internal network, so the admin listener binds every
       # address here.
@@ -22,6 +21,5 @@ services:
       - "127.0.0.1:19160:9160"
 
   broker-console:
-    build: { context: .., dockerfile: deploy/docker/ui.Dockerfile, target: ui }
     ports:
       - "127.0.0.1:13100:3000"

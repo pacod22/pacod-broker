@@ -9,7 +9,7 @@
 | The broker's own stack | `make up` | The broker, the console, Caddy, Prometheus and Grafana ([deploy/docker-compose.standalone.yml](../deploy/docker-compose.standalone.yml)). |
 | The full pacod stack | pacod-demo | See [integration.md](integration.md). |
 
-**Images.** `make images` builds both. The Rust image builds with cargo-chef on Rust 1.99 and needs network access to crates.io and the Debian mirror.
+**Images.** The app file builds each image from the checkout when it is missing, so a stack that includes only `deploy/docker-compose.yml` (pacod-demo) needs no registry; `--build` rebuilds them. `make images` builds both ahead of time. The Rust image builds with cargo-chef on Rust 1.99 and needs network access to crates.io and the Debian mirror.
 
 ## 2. Configuration
 
