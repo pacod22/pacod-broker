@@ -53,7 +53,8 @@ pacod-ap is one installation without organisations, so it announces as one provi
 | The edge | `platform/caddy/ap-agents.caddy`: the site `AP_AGENT_API_SITE` routes `/v1/*` and `/mcp` to ap-api, which authenticates every call (pacod-id tokens, `pidt_` service tokens). pacod-demo serves it at `agents.<domain>`. |
 | A search tool | `broker_search` runs `POST /v1/discover` during a turn and puts the hits into the context as data, never instructions. It is opt-in: only an agent whose tool list names it gets it. Without a broker it answers "unavailable" and the turn goes on. |
 | The console | The Broker page (`/broker`) shows the status, what pacod-ap announces, and a search. The model pickers show a model's reputation where the gateway names its `broker_resource_id`. |
-| Lifecycle | The announcer rereads every `BROKER_REFRESH_SECONDS`, updates under the same lease, heartbeats, and says goodbye when nothing is offered or the service stops. Without `BROKER_URL` and `BROKER_TOKEN` nothing is announced. |
+| The connection | `BROKER_URL`, `BROKER_TOKEN`, `BROKER_AGENT_URL`, `BROKER_MCP_URL` and the timings are the deployment's; a superuser may set each on the console's Broker page instead, with a connection test. A token goes only to the address it was given for: another broker address needs that broker's token (or none, in open mode). |
+| Lifecycle | The announcer rereads every `BROKER_REFRESH_SECONDS`, updates under the same lease, heartbeats, and says goodbye when nothing is offered or the service stops. A connection changed on the Broker page ends the lease at the old broker and announces at the new one. Without a broker address nothing is announced. |
 
 ## 5. pacod-cms: websites as datasets
 
